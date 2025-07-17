@@ -8,30 +8,35 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
     steps:
-    - name: Checkout Repository
-      uses: actions/checkout@v2
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-    - name: Debug SSH Private Key Length
-      run: |
-        echo "Private Key Length: ${#SSH_PRIVATE_KEY}"
-      env:
-        SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+      - name: Debug SSH Private Key Length
+        run: |
+          echo "Private Key Length: ${#SSH_PRIVATE_KEY}"
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
 
-    - name: Debug, Show first 10 characters of private key
-      run: |
-        echo "${{ secrets.SSH_PRIVATE_KEY }}" | head -n 30
-          
-    - name: Setup SSH
-      uses: webfactory/ssh-agent@v0.5.3
-      with:
-        ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
-      
-    - name: SSH into VPS and deploy
-      run: |
-        ssh -o StrictHostKeyChecking=no root@91.99.121.54
-          cd /path/to/your/project && 
-          git pull origin main && 
-          docker compose down &&
-          docker compose up -d"
+      - name: Set up SSH key manually
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          # Ensure the key is in OpenSSH format (no extra spaces or lines)
+          ssh-keygen -p -f ~/.ssh/id_rsa -m PEM # Convert to PEM format if needed
+          eval $(ssh-agent -s)
+          ssh-add ~/.ssh/id_rsa
+
+      - name: Test SSH connection to GitHub
+        run: |
+          ssh -T git@github.com
+
+      - name: SSH into VPS and deploy
+        run: |
+          ssh -o StrictHostKeyChecking=no root@91.99.121.54 << 'EOF'
+            cd ~/agent-stack &&
+            git pull origin main &&
+            docker compose down &&
+            docker compose up -d
+          EOF
