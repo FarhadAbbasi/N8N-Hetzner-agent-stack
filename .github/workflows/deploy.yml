@@ -15,12 +15,12 @@ jobs:
 
     - name: Print the private key for debugging
       run:  |
-        echo "${{ secrets.SSH_PRIVATE_KEY }}" | head -n 50  # Show the first 10 characters for debugging
+        echo "${{ secrets.SSH_PRI_KEY }}" | head -n 50  # Show the first 10 characters for debugging
 
     - name: Setup SSH
       uses: webfactory/ssh-agent@v0.5.3
       with:
-        ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+        ssh-private-key: ${{ secrets.SSH_PRI_KEY }}
       
     - name: SSH into VPS and deploy
       run: |
