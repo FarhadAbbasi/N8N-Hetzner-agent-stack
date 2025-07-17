@@ -13,10 +13,12 @@ jobs:
     - name: Checkout Repository
       uses: actions/checkout@v2
 
-    - name: Print the private key for debugging
-      run:  |
-        echo "${{ secrets.SSH_PRI_KEY }}" | head -n 50  # Show the first 10 characters for debugging
-
+    - name: Debug SSH Private Key Length
+      run: |
+        echo "Private Key Length: ${#SSH_PRI_KEY}"
+      env:
+        SSH_PRIVATE_KEY: ${{ secrets.SSH_PRI_KEY }}
+          
     - name: Setup SSH
       uses: webfactory/ssh-agent@v0.5.3
       with:
