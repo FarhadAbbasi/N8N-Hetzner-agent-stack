@@ -20,7 +20,7 @@ jobs:
       
     - name: SSH into VPS and deploy
       run: |
-        ssh -o StrictHostKeyChecking=no username@your-server-ip "
+        ssh -o StrictHostKeyChecking=no root@91.99.121.54
           cd /path/to/your/project && 
           git pull origin main && 
           docker compose down &&
