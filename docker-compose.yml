@@ -1,0 +1,126 @@
+
+version: "3.8"
+
+services:
+
+  # ----------------------------------------
+  # 🔐 Reverse Proxy: nginx + Let's Encrypt
+  # ----------------------------------------
+  proxy:
+    image: nginxproxy/nginx-proxy
+    container_name: reverse-proxy
+    labels:
+      - com.github.nginx-proxy.nginx-proxy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - ./data/proxy/certs:/etc/nginx/certs:ro
+      - ./data/proxy/vhost.d:/etc/nginx/vhost.d
+      - ./data/proxy/html:/usr/share/nginx/html
+
+  acme:
+    image: nginxproxy/acme-companion
+    restart: unless-stopped
+    depends_on:
+      - proxy
+    environment:
+      - DEFAULT_EMAIL=abbasibros2014@gmail.com
+      - NGINX_PROXY_CONTAINER=reverse-proxy
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./data/proxy/certs:/etc/nginx/certs
+      - ./data/proxy/vhost.d:/etc/nginx/vhost.d
+      - ./data/proxy/html:/usr/share/nginx/html
+
+
+
+
+
+  # ------------------------------
+  # 🧠 n8n (workflow automation)
+  # ------------------------------
+
+  n8n:
+    image: n8nio/n8n:latest
+    restart: unless-stopped
+    environment:
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=${N8N_USER}
+      - N8N_BASIC_AUTH_PASSWORD=${N8N_PASSWORD}
+      - N8N_HOST=${DOMAIN}
+      - N8N_PORT=${N8N_PORT}
+      - N8N_PROTOCOL=${PROTOCOL}
+      - WEBHOOK_URL=${PROTOCOL}://${DOMAIN}/
+      - VIRTUAL_HOST=${DOMAIN}
+      - LETSENCRYPT_HOST=${DOMAIN}
+      - LETSENCRYPT_EMAIL=${EMAIL} 
+ 
+#     - N8N_BASIC_AUTH_ACTIVE=true
+#      - N8N_BASIC_AUTH_USER=admin
+#      - N8N_BASIC_AUTH_PASSWORD=Abbasi2014
+#      - N8N_HOST=proxpire.com
+#      - N8N_PORT=5678
+#      - WEBHOOK_URL=https://proxpire.com/
+#      - N8N_PROTOCOL=${PROTOCOL}
+#      - VIRTUAL_HOST=proxpire.com
+#      - LETSENCRYPT_HOST=proxpire.com
+#      - LETSENCRYPT_EMAIL=abbasibros2014@gmail.com
+    networks:
+      - internal
+      - default
+
+    volumes:
+      - ./data/n8n/.n8n:/home/node/.n8n
+#      - n8n_data:/home/node/.n8n
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5678/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+
+  # ------------------------------
+  # 🧠 Ollama (local LLM backend)
+  # ------------------------------
+  ollama:
+    image: ollama/ollama:latest
+    restart: unless-stopped
+    volumes:
+      - ./data/ollama:/root/.ollama
+    networks:
+      - internal
+
+  # ------------------------------
+  # 📂 Qdrant (vector store)
+  # ------------------------------
+  qdrant:
+    image: qdrant/qdrant
+    restart: unless-stopped
+    ports:
+      - "6333:6333"  # For external testing or internal LlamaIndex
+    volumes:
+      - ./data/qdrant:/qdrant/storage
+    networks:
+      - internal
+
+  # ------------------------------
+  # 🧰 Redis (optional - caching)
+  # ------------------------------
+  redis:
+    image: redis:7
+    restart: unless-stopped
+    volumes:
+      - ./data/redis:/data
+    networks:
+      - internal
+
+networks:
+  internal:
+    driver: bridge
+
+#volumes:
+#  n8n_data:
+
