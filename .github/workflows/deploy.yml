@@ -18,6 +18,10 @@ jobs:
         echo "Private Key Length: ${#SSH_PRIVATE_KEY}"
       env:
         SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+
+    - name: Debug, Show first 10 characters of private key
+      run: |
+        echo "${{ secrets.SSH_PRIVATE_KEY }}" | head -n 30
           
     - name: Setup SSH
       uses: webfactory/ssh-agent@v0.5.3
