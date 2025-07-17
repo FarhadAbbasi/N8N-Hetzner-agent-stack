@@ -1,0 +1,27 @@
+name: Deploy to Server
+
+on:
+  push:
+    branches:
+      - main  # or 'master' if you use that
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v2
+
+    - name: Setup SSH
+      uses: webfactory/ssh-agent@v0.5.3
+      with:
+        ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+      
+    - name: SSH into VPS and deploy
+      run: |
+        ssh -o StrictHostKeyChecking=no username@your-server-ip "
+          cd /path/to/your/project && 
+          git pull origin main && 
+          docker compose down &&
+          docker compose up -d"
