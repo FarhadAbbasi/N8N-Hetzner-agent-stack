@@ -15,14 +15,14 @@ jobs:
 
     - name: Debug SSH Private Key Length
       run: |
-        echo "Private Key Length: ${#SSH_PRI_KEY}"
+        echo "Private Key Length: ${#SSH_PRIVATE_KEY}"
       env:
-        SSH_PRIVATE_KEY: ${{ secrets.SSH_PRI_KEY }}
+        SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
           
     - name: Setup SSH
       uses: webfactory/ssh-agent@v0.5.3
       with:
-        ssh-private-key: ${{ secrets.SSH_PRI_KEY }}
+        ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
       
     - name: SSH into VPS and deploy
       run: |
