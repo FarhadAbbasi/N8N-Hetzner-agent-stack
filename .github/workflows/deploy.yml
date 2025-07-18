@@ -1,13 +1,14 @@
-name: Deploy to Server
+name: Deploy to VPS
 
 on:
   push:
     branches:
-      - main  # or 'master' if you use that
+      - main
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -18,15 +19,14 @@ jobs:
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY_NEW }}
 
-      - name: Debug, Show first 10 characters of private key
+      - name: Set up SSH key manually
         run: |
-          echo "${{ secrets.SSH_PRIVATE_KEY_NEW }}" | head -n 30
-          
-      - name: Setup SSH
-        uses: webfactory/ssh-agent@v0.5.3
-        with:
-          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY_NEW }}
-      
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY_NEW }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          eval $(ssh-agent -s)
+          ssh-add ~/.ssh/id_rsa
+
       - name: Test SSH connection to GitHub
         run: |
           ssh -T git@github.com
