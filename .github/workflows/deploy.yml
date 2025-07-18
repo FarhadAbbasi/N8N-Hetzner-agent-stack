@@ -22,6 +22,7 @@ jobs:
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 700 ~/.ssh
           chmod 600 ~/.ssh/id_rsa
           # Ensure the key is in OpenSSH format (no extra spaces or lines)
           # ssh-keygen -p -f ~/.ssh/id_rsa -m PEM # Convert to PEM format if needed
