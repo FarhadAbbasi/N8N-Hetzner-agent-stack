@@ -1,0 +1,48 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Debug SSH Private Key FARHAD Length
+        run: |
+          echo "Private Key Length: ${#SSH_PRIVATE_FARHADALI558}"
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_FARHADALI558 }}
+
+      - name: Debug SSH Private Key BROS Length
+        run: |
+          echo "Private Key Length: ${#SSH_PRIVATE_ABBASIBROS}"
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_ABBASIBROS }}
+
+
+      - name: Set up SSH key manually
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_FARHADALI558 }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          eval $(ssh-agent -s)
+          ssh-add ~/.ssh/id_rsa
+
+#      - name: Test SSH connection to GitHub
+#        run: |
+#          ssh -T git@github.com
+
+      - name: SSH into VPS and deploy
+        run: |
+          ssh -o StrictHostKeyChecking=no root@91.99.121.54 << 'EOF'
+            cd ~/agent-stack &&
+            git pull origin main &&
+            docker compose down &&
+            docker compose up -d
+          EOF
