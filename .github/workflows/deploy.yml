@@ -21,7 +21,7 @@ jobs:
 
       - name: Debug SSH Private Key BROS Length
         run: |
-          echo "Private Key Length: ${#SSH_PRIVATE_FARHADALI558}"
+          echo "Private Key Length: ${#SSH_PRIVATE_ABBASIBROS}"
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_ABBASIBROS }}
 
