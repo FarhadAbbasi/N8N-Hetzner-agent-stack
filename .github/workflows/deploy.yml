@@ -13,16 +13,23 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Debug SSH Private Key Length
+      - name: Debug SSH Private Key FARHAD Length
         run: |
-          echo "Private Key Length: ${#SSH_PRIVATE_KEY_NEW}"
+          echo "Private Key Length: ${#SSH_PRIVATE_FARHADALI558}"
         env:
-          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY_NEW }}
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_FARHADALI558 }}
+
+      - name: Debug SSH Private Key BROS Length
+        run: |
+          echo "Private Key Length: ${#SSH_PRIVATE_FARHADALI558}"
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_ABBASIBROS }}
+
 
       - name: Set up SSH key manually
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY_NEW }}" > ~/.ssh/id_rsa
+          echo "${{ secrets.SSH_PRIVATE_FARHADALI558 }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           eval $(ssh-agent -s)
           ssh-add ~/.ssh/id_rsa
