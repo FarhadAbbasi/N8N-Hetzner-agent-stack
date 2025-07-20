@@ -59,7 +59,14 @@ services:
       - VIRTUAL_HOST=${DOMAIN}
       - LETSENCRYPT_HOST=${DOMAIN}
       - LETSENCRYPT_EMAIL=${EMAIL} 
- 
+
+    labels:
+      - "com.github.nginx-proxy.nginx-proxy=true"  # This allows Nginx to route to n8n
+      - "com.github.nginx-proxy.virtual_host=${DOMAIN}"  # The domain where it will be accessible
+      - "com.github.nginx-proxy.virtual_path=/n8n"  # Route traffic to /n8n path
+    ports:
+      - "5678:5678"  # Expose the container port for internal communication 
+
 #     - N8N_BASIC_AUTH_ACTIVE=true
 #      - N8N_BASIC_AUTH_USER=admin
 #      - N8N_BASIC_AUTH_PASSWORD=Abbasi2014
