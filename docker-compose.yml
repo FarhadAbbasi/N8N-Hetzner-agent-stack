@@ -55,8 +55,8 @@ services:
       - N8N_HOST=${DOMAIN}
       - N8N_PORT=${N8N_PORT}
       - N8N_PROTOCOL=${PROTOCOL}
-      - N8N_PATH=/n8n   # Add this line to specify the path
-      - WEBHOOK_URL=${PROTOCOL}://${DOMAIN}/n8n/
+      # - N8N_PATH=/n8n   # Add this line to specify the path
+      - WEBHOOK_URL=${PROTOCOL}://${DOMAIN}/
       - VIRTUAL_HOST=${DOMAIN}
       - LETSENCRYPT_HOST=${DOMAIN}
       - LETSENCRYPT_EMAIL=${EMAIL} 
