@@ -4,44 +4,38 @@ Your personal guide to mastering Git with flexibility and confidence. 💪
 
 ## 🌱 Git Management
 
-| Category                                 | Command |  Purpose |
-|----------------------------------------|---------|----------|
-| Viewing & Status   |	git status	                    | See modified/staged files |
-| Viewing & Status	 |  git log --oneline --graph --all	| Visual history of commits |
-
----
-
-
-Category	            Command	                        Purpose
-------------------------------------------------------------------------------------
- Viewing & Status   	git status	                    See modified/staged files
- Viewing & Status	    git log --oneline --graph --all	Visual history of commits
- Staging & Committing	git add .	                    Stage all changes
- Staging & Committing	git commit -m 'your message'	 Save staged changes
- Staging & Committing	git commit --amend	            Edit last commit message/files
- Push & Pull	        git push origin main	        Push commits to remote
- Push & Pull	        git pull origin main	        Pull and merge remote to local
- Push & Pull	        git fetch --all	                Get remote changes without merging
- Branching	            git branch new-branch	        Create a new branch
- Branching	            git checkout -b new-branch	    Create and switch to a new branch
- Branching	            git branch -d branch-name	    Delete a branch
- Branching	            git push origin new-branch	    Push new branch to GitHub
- Merging & Switching	git checkout main	            Switch to another branch
- Merging & Switching	git merge new-branch	        Merge branch into current one
- Merging & Switching	git branch --merged	            See what has been merged
- Reset & Revert	        git reset --hard commit_id	    Reset to a specific commit (erase future)
- Reset & Revert	        git reset --soft commit_id	    Reset but keep changes staged
- Reset & Revert	        git revert commit_id	        Undo a specific commit (safely)
- Reset & Revert	        git reflog	                    See all checkout/reset history
- Reset & Revert     	git reset --hard HEAD@{1}	    Undo recent checkout/reset
- Reset & Revert	        git reset --merge	            Abort failed merge/conflict
- Stashing (Temp Save)	git stash	                    Temporarily save changes
- Stashing (Temp Save)	git stash list	                View stashed changes
- Stashing (Temp Save)	git stash pop	                Apply latest stash
- Conflict Resolution	git diff	                    Compare changes between branches/files
- Conflict Resolution	git mergetool	                Use tool to resolve merge conflicts
+--------------------------------------------------------------------
+| Category            | Command                          |  Purpose |
+|---------------------|----------------------------------|----------|
+| Viewing & Status    |	git status	                     | See modified/staged files |
+| Viewing & Status    | git log --oneline --graph --all	 | Visual history of commits |
+| Staging & Committing|	git add .	                     |Stage all changes|
+| Staging & Committing|	git commit -m 'your message'	 |Save staged changes|
+| Staging & Committing|	git commit --amend	             |Edit last commit message/files|
+| Push & Pull	      | git push origin main	         |Push commits to remote|
+| Push & Pull	      | git pull origin main	         |Pull and merge remote to local|
+| Push & Pull	      | git fetch --all	                 |Get remote changes without merging|
+| Branching	          | git branch new-branch	         |Create a new branch|
+| Branching	          | git checkout -b new-branch	     |Create and switch to a new branch|
+| Branching	          | git branch -d branch-name	     |Delete a branch|
+| Branching	          | git push origin new-branch	     |Push new branch to GitHub|
+| Merging & Switching |	git checkout main	             |Switch to another branch|
+| Merging & Switching |	git merge new-branch	         |Merge branch into current one|
+| Merging & Switching |	git branch --merged	             |See what has been merged|
+| Reset & Revert	  | git reset --hard commit_id	     |Reset to a specific commit (erase future)|
+| Reset & Revert	  | git reset --soft commit_id	     |Reset but keep changes staged|
+| Reset & Revert	  | git revert commit_id	         |Undo a specific commit (safely)|
+| Reset & Revert	  | git reflog	                     |See all checkout/reset history|
+| Reset & Revert      |	git reset --hard HEAD@{1}	     |Undo recent checkout/reset|
+| Reset & Revert	  | git reset --merge	             |Abort failed merge/conflict|
+| Stashing (Temp Save)|	git stash	                     |Temporarily save changes|
+| Stashing (Temp Save)|	git stash list	                 |View stashed changes|
+| Stashing (Temp Save)|	git stash pop	                 |Apply latest stash|
+| Conflict Resolution |	git diff	                     |Compare changes between branches/files|
+| Conflict Resolution |	git mergetool	                 |Use tool to resolve merge conflicts|
 -----------------------------------------------------------------------------------------------------
 
+---
 
 
 
