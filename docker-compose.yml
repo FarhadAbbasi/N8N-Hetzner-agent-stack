@@ -21,6 +21,8 @@ services:
       - ./data/proxy/vhost.d:/etc/nginx/vhost.d
       - ./data/proxy/html:/usr/share/nginx/html
 
+  # ---------------------------
+
   acme:
     image: nginxproxy/acme-companion
     restart: unless-stopped
@@ -53,7 +55,8 @@ services:
       - N8N_HOST=${DOMAIN}
       - N8N_PORT=${N8N_PORT}
       - N8N_PROTOCOL=${PROTOCOL}
-      - WEBHOOK_URL=${PROTOCOL}://${DOMAIN}/
+      - N8N_PATH=/n8n   # Add this line to specify the path
+      - WEBHOOK_URL=${PROTOCOL}://${DOMAIN}/n8n/
       - VIRTUAL_HOST=${DOMAIN}
       - LETSENCRYPT_HOST=${DOMAIN}
       - LETSENCRYPT_EMAIL=${EMAIL} 

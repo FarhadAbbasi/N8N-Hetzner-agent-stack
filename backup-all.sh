@@ -1,13 +1,14 @@
+#!/bin/bash
 
-#To run/trigger following backup script:
+
+# To run/trigger following backup script:
 # crontab -e		#Add following line to crontab for auto-backups.
 # 0 */12 * * * /root/agent-stack/backup-all.sh >> /var/log/agent-backup.log 2>&1	
 
-#!/bin/bash
+
 
 # This script backs up n8n and Qdrant data, archives them, and manages old backups.
 # It assumes n8n is running in a Docker container and Qdrant data is stored in a host-mounted volume.
-
 # Set timestamps and paths
 TIMESTAMP=$(date +%F-%H%M)
 TMP_DIR="/tmp/backup-$TIMESTAMP"
