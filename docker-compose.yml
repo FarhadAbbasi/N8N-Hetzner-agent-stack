@@ -55,7 +55,6 @@ services:
       - N8N_HOST=${DOMAIN}
       - N8N_PORT=${N8N_PORT}
       - N8N_PROTOCOL=${PROTOCOL}
-      # - N8N_PATH=/n8n   # Add this line to specify the path
       - WEBHOOK_URL=${PROTOCOL}://${DOMAIN}/
       - VIRTUAL_HOST=${DOMAIN}
       - LETSENCRYPT_HOST=${DOMAIN}
@@ -71,6 +70,7 @@ services:
 #      - VIRTUAL_HOST=proxpire.com
 #      - LETSENCRYPT_HOST=proxpire.com
 #      - LETSENCRYPT_EMAIL=abbasibros2014@gmail.com
+
     networks:
       - internal
       - default
