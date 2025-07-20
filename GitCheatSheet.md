@@ -31,11 +31,10 @@ Your personal guide to mastering Git with flexibility and confidence. 💪
 | Stashing (Temp Save)|	git stash	                     |Temporarily save changes|
 | Stashing (Temp Save)|	git stash list	                 |View stashed changes|
 | Stashing (Temp Save)|	git stash pop	                 |Apply latest stash|
-| Conflict Resolution |	git diff	                     |Compare changes between branches/files
-| Conflict Resolution |	git mergetool	                 |Use tool to resolve merge conflicts
+| Conflict Resolution |	git diff	                     |Compare changes between branches/files|
+| Conflict Resolution |	git mergetool	                 |Use tool to resolve merge conflicts|
 -----------------------------------------------------------------------------------------------------
 
----
 
 
 
