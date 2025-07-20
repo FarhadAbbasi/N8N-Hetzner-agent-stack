@@ -55,8 +55,10 @@ services:
       - N8N_HOST=${DOMAIN}
       - N8N_PORT=${N8N_PORT}
       - N8N_PROTOCOL=${PROTOCOL}
-      - WEBHOOK_URL=${PROTOCOL}://${DOMAIN}/
+      - N8N_PATH=/n8n   # Add this line to specify the path
+      - WEBHOOK_URL=${PROTOCOL}://${DOMAIN}/n8n/  # Ensure the webhook URL matches the path
       - VIRTUAL_HOST=${DOMAIN}
+      - VIRTUAL_PATH=/n8n                       # This line is crucial!
       - LETSENCRYPT_HOST=${DOMAIN}
       - LETSENCRYPT_EMAIL=${EMAIL} 
 
@@ -64,6 +66,8 @@ services:
       - "com.github.nginx-proxy.nginx-proxy=true"  # This allows Nginx to route to n8n
       - "com.github.nginx-proxy.virtual_host=${DOMAIN}"  # The domain where it will be accessible
       - "com.github.nginx-proxy.virtual_path=/n8n"  # Route traffic to /n8n path
+      - "com.github.nginx-proxy.letsencrypt_host=${DOMAIN}"  # Enable Let's Encrypt for this service
+
     ports:
       - "5678:5678"  # Expose the container port for internal communication 
 
@@ -79,8 +83,8 @@ services:
 #      - LETSENCRYPT_EMAIL=abbasibros2014@gmail.com
 
     networks:
-      - internal
-      - default
+      - internal  # Use an internal network for communication between services
+      - default   # This allows n8n to be accessible via the reverse proxy
 
     volumes:
       - ./data/n8n/.n8n:/home/node/.n8n
