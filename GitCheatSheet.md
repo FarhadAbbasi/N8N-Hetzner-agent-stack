@@ -2,8 +2,16 @@
 
 Your personal guide to mastering Git with flexibility and confidence. 💪
 
--
-------------------------------------------------------------------------------------
+## 🌱 Git Management
+
+| Category                                 | Command |  Purpose |
+|----------------------------------------|---------|----------|
+| Viewing & Status   |	git status	                    | See modified/staged files |
+| Viewing & Status	 |  git log --oneline --graph --all	| Visual history of commits |
+
+---
+
+
 Category	            Command	                        Purpose
 ------------------------------------------------------------------------------------
  Viewing & Status   	git status	                    See modified/staged files
