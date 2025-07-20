@@ -20,6 +20,8 @@ services:
       - ./data/proxy/certs:/etc/nginx/certs:ro
       - ./data/proxy/vhost.d:/etc/nginx/vhost.d
       - ./data/proxy/html:/usr/share/nginx/html
+    networks:
+      - default   # Ensure Nginx is on the same network
 
   # ---------------------------
 
@@ -84,7 +86,7 @@ services:
 #      - LETSENCRYPT_EMAIL=
 
     networks:
-      - internal  # Use an internal network for communication between services
+      # - internal  # Use an internal network for communication between services
       - default   # This allows n8n to be accessible via the reverse proxy / browser
 
     volumes:
