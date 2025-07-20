@@ -61,6 +61,7 @@ services:
       - VIRTUAL_PATH=/n8n                       # This line is crucial!
       - LETSENCRYPT_HOST=${DOMAIN}
       - LETSENCRYPT_EMAIL=${EMAIL} 
+      - N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true  # Ensure file permissions are enforced
 
     labels:
       - "com.github.nginx-proxy.nginx-proxy=true"  # This allows Nginx to route to n8n
@@ -73,18 +74,18 @@ services:
 
 #     - N8N_BASIC_AUTH_ACTIVE=true
 #      - N8N_BASIC_AUTH_USER=admin
-#      - N8N_BASIC_AUTH_PASSWORD=Abbasi2014
+#      - N8N_BASIC_AUTH_PASSWORD=
 #      - N8N_HOST=proxpire.com
 #      - N8N_PORT=5678
 #      - WEBHOOK_URL=https://proxpire.com/
 #      - N8N_PROTOCOL=${PROTOCOL}
 #      - VIRTUAL_HOST=proxpire.com
 #      - LETSENCRYPT_HOST=proxpire.com
-#      - LETSENCRYPT_EMAIL=abbasibros2014@gmail.com
+#      - LETSENCRYPT_EMAIL=
 
     networks:
       - internal  # Use an internal network for communication between services
-      - default   # This allows n8n to be accessible via the reverse proxy
+      - default   # This allows n8n to be accessible via the reverse proxy / browser
 
     volumes:
       - ./data/n8n/.n8n:/home/node/.n8n
@@ -134,6 +135,7 @@ services:
 networks:
   internal:
     driver: bridge
+  default: {}  # This will automatically connect services to the default network
 
 #volumes:
 #  n8n_data:
