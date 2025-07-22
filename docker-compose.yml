@@ -35,6 +35,7 @@ services:
       - ./data/proxy/vhost.d:/etc/nginx/vhost.d
       - ./data/proxy/html:/usr/share/nginx/html
 
+      
     
 
 
