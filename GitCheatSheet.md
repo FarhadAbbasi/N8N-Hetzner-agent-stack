@@ -22,7 +22,7 @@ Your personal guide to mastering Git with flexibility and confidence. 💪
 | Merging & Switching |	git checkout main	             |Switch to another branch|
 | Merging & Switching |	git merge new-branch	         |Merge branch into current one|
 | Merging & Switching |	git branch --merged	             |See what has been merged|
-| Reset & Revert	  | git reset --hard commit_id	     |Reset to a specific commit (erase future)|
+| Reset & Revert	  | git reset --hard commit_id	     |Reset to a specific commit or branch (erase future)|
 | Reset & Revert	  | git reset --soft commit_id	     |Reset but keep changes staged|
 | Reset & Revert	  | git revert commit_id	         |Undo a specific commit (safely)|
 | Reset & Revert	  | git reflog	                     |See all checkout/reset history|
