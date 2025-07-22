@@ -34,6 +34,7 @@ services:
       - ./data/proxy/certs:/etc/nginx/certs
       - ./data/proxy/vhost.d:/etc/nginx/vhost.d
       - ./data/proxy/html:/usr/share/nginx/html
+      - ./data/acme:/etc/acme.sh        # Persist Let's Encrypt SSL certificates
 
       
     
