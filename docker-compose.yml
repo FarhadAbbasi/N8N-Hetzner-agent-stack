@@ -88,7 +88,7 @@ services:
 #      - LETSENCRYPT_EMAIL=
 
     networks:
-      # - internal  # Use an internal network for communication between services
+      - internal  # Use an internal network for communication between services
       - default   # This allows n8n to be accessible via the reverse proxy / browser
 
     volumes:
