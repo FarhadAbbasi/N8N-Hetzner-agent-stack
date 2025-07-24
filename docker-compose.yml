@@ -20,6 +20,11 @@ services:
       - ./data/proxy/certs:/etc/nginx/certs:ro
       - ./data/proxy/vhost.d:/etc/nginx/vhost.d
       - ./data/proxy/html:/usr/share/nginx/html
+    networks:
+      - default   # Ensure Nginx is on the same network as n8n
+      - internal
+
+  # ---------------------------
 
   acme:
     image: nginxproxy/acme-companion
@@ -34,7 +39,8 @@ services:
       - ./data/proxy/certs:/etc/nginx/certs
       - ./data/proxy/vhost.d:/etc/nginx/vhost.d
       - ./data/proxy/html:/usr/share/nginx/html
-      - ./data/acme:/etc/acme.sh    
+      - ./data/acme:/etc/acme.sh  # <-- Add this line for SSL cert persistence, otherwise it will regenerate cert with each restart.
+
 
 
 
@@ -54,38 +60,46 @@ services:
       - N8N_HOST=${DOMAIN}
       - N8N_PORT=${N8N_PORT}
       - N8N_PROTOCOL=${PROTOCOL}
-      - WEBHOOK_URL=${PROTOCOL}://${DOMAIN}/
+      - N8N_PATH=/n8n   # Add this line to specify the path
+      - WEBHOOK_URL=${PROTOCOL}://${DOMAIN}/n8n/  # Ensure the webhook URL matches the path
       - VIRTUAL_HOST=${DOMAIN}
+      - VIRTUAL_PATH=/n8n                       # This line is crucial!
       - LETSENCRYPT_HOST=${DOMAIN}
       - LETSENCRYPT_EMAIL=${EMAIL} 
- 
+      - N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true  # Ensure file permissions are enforced
+
+    labels:
+      - "com.github.nginx-proxy.nginx-proxy=true"  # This allows Nginx to route to n8n
+      - "com.github.nginx-proxy.virtual_host=${DOMAIN}"  # The domain where it will be accessible
+      - "com.github.nginx-proxy.virtual_path=/n8n"  # Route traffic to /n8n path
+      - "com.github.nginx-proxy.letsencrypt_host=${DOMAIN}"  # Enable Let's Encrypt for this service
+
+    ports:
+      - "5678:5678"  # Expose the container port for internal communication 
+
 #     - N8N_BASIC_AUTH_ACTIVE=true
 #      - N8N_BASIC_AUTH_USER=admin
-#      - N8N_BASIC_AUTH_PASSWORD=Abbasi2014
+#      - N8N_BASIC_AUTH_PASSWORD=
 #      - N8N_HOST=proxpire.com
 #      - N8N_PORT=5678
 #      - WEBHOOK_URL=https://proxpire.com/
 #      - N8N_PROTOCOL=${PROTOCOL}
 #      - VIRTUAL_HOST=proxpire.com
 #      - LETSENCRYPT_HOST=proxpire.com
-#      - LETSENCRYPT_EMAIL=abbasibros2014@gmail.com
+#      - LETSENCRYPT_EMAIL=
+
     networks:
       - internal
       - default
-    # depends_on:
-    #   - qdrant
-    #   - ollama
-      
-    ports:
-      - "5678:5678"  # n8n's default port
+
     volumes:
       - ./data/n8n/.n8n:/home/node/.n8n
 #      - n8n_data:/home/node/.n8n
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5678/healthz"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
+    # healthcheck:
+    #   test: ["CMD", "curl", "-f", "http://localhost:5678/healthz"]
+    #   interval: 30s
+    #   timeout: 10s
+    #   retries: 5
 
 
   # ------------------------------
@@ -168,6 +182,7 @@ services:
 networks:
   internal:
     driver: bridge
+  default: {}  # This will automatically connect services to the default network
 
 #volumes:
 #  n8n_data:
