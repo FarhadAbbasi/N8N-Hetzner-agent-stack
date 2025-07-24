@@ -45,6 +45,7 @@ services:
 
   n8n:
     image: n8nio/n8n:latest
+    # container_name: n8n
     restart: unless-stopped
     environment:
       - N8N_BASIC_AUTH_ACTIVE=true
@@ -71,7 +72,12 @@ services:
     networks:
       - internal
       - default
-
+    # depends_on:
+    #   - qdrant
+    #   - ollama
+      
+    ports:
+      - "5678:5678"  # n8n's default port
     volumes:
       - ./data/n8n/.n8n:/home/node/.n8n
 #      - n8n_data:/home/node/.n8n
@@ -87,20 +93,44 @@ services:
   # ------------------------------
   ollama:
     image: ollama/ollama:latest
+    # container_name: ollama
     restart: unless-stopped
     volumes:
       - ./data/ollama:/root/.ollama
+    ports:
+      - "11434:11434" 
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+      - OLLAMA_ORIGINS=*
     networks:
       - internal
+
+  # # Use this deploy section above if you have GPU support
+  #   deploy:
+  #     resources:
+  #       reservations:
+  #         devices:
+  #           - driver: nvidia
+  #             count: all
+  #             capabilities: [gpu]
+
 
   # ------------------------------
   # 📂 Qdrant (vector store)
   # ------------------------------
   qdrant:
     image: qdrant/qdrant
+    # container_name: qdrant
     restart: unless-stopped
     ports:
-      - "6333:6333"  # For external testing or internal LlamaIndex
+      - "6333:6333"  # Qdrant's default port. For external testing or internal LlamaIndex
+      - "6334:6334"
+    environment:
+      - QDRANT_SERVICE_HTTP_PORT=6333 # HTTP port for external access
+      - QDRANT_SERVICE_GRPC_PORT=6334 # gRPC port for internal communication
+      - QDRANT_LOG_LEVEL=INFO
+    #http://localhost:6333/collections/legal_documents/points/search
+
     volumes:
       - ./data/qdrant:/qdrant/storage
     networks:
@@ -111,11 +141,29 @@ services:
   # ------------------------------
   redis:
     image: redis:7
+    # container_name: redis
     restart: unless-stopped
     volumes:
       - ./data/redis:/data
     networks:
       - internal
+
+
+#  # PostgreSQL (Optional - for N8N database instead of SQLite)
+#   postgres:
+#     image: postgres:15-alpine
+#     container_name: postgres
+#     restart: unless-stopped
+#     ports:
+#       - "5432:5432"
+#     environment:
+#       - POSTGRES_DB=n8n
+#       - POSTGRES_USER=n8n
+#       - POSTGRES_PASSWORD=your_db_password_here
+#     volumes:
+#       - postgres_data:/var/lib/postgresql/data
+#     networks:
+#       - legal_ai_network
 
 networks:
   internal:
