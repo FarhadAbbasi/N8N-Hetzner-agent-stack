@@ -7,6 +7,7 @@ services:
   # ----------------------------------------
   # 🔐 Reverse Proxy: nginx + Let's Encrypt
   # ----------------------------------------
+    
   proxy:
     image: nginxproxy/nginx-proxy
     container_name: reverse-proxy
