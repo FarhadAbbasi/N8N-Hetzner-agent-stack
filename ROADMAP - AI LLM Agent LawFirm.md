@@ -90,10 +90,10 @@ Answer:
 
 # >>>> --------------------------   LLM MODEL TUNING   --------------------->>>>>
 
-Vector-Database-Context (Your Current Strategy)
+1. Vector-Database-Context (Your Current Strategy)
 
 
-Fine-Tuning (Model-Level Customization)
+2. Fine-Tuning (Model-Level Customization)
 	Benefits of Fine-Tuning:
 	Highly personalized: Fine-tuned models can answer very specific questions related to the firm’s business.
 	Improved accuracy: The model becomes more knowledgeable about the firm’s industry and context.
@@ -101,7 +101,7 @@ Fine-Tuning (Model-Level Customization)
 	Requires significant compute resources for training.
 	May require periodic updates as new data comes in.
 
-Few-Shot Prompting / Instruction Tuning	
+3. Few-Shot Prompting / Instruction Tuning	
 	Benefits:
 	Low resource usage: You don’t need large datasets or compute-heavy fine-tuning.
 	Fast adaptation: This is a quicker way to customize the model for specific tasks.
@@ -109,7 +109,7 @@ Few-Shot Prompting / Instruction Tuning
 	The customization may be less robust compared to fine-tuning or using vector-contextual information.
 	It requires precise, well-designed prompts to be effective.
 
-Domain-Specific Tokenization / Embeddings
+4. Domain-Specific Tokenization / Embeddings
 	Benefits:
 	Highly effective for niche industries: Ensures that specialized terms and knowledge are treated correctly.
 	Improves the model’s ability to understand context in specific industries.

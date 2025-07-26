@@ -103,6 +103,7 @@ services:
       - "11434:11434" 
     environment:
       - OLLAMA_HOST=0.0.0.0
+      # - OLLAMA_HOST=http://0.0.0.0:11434  # Explicitly binding to all interfaces
       - OLLAMA_ORIGINS=*
     networks:
       - internal
@@ -137,6 +138,18 @@ services:
       - ./data/qdrant:/qdrant/storage
     networks:
       - internal
+
+
+  # 💾 Tika Server for PDF/DOCX text extraction ---->> 
+  tika:
+    image: apache/tika:latest
+    container_name: tika_server
+    restart: unless-stopped
+    ports:
+      - "9998:9998"
+    networks:
+      - legal_ai_network
+
 
   # ------------------------------
   # 🧰 Redis (optional - caching)
