@@ -28,6 +28,34 @@ Ollama Generate: http://ollama:11434/api/generate
 # Pull the model: You can pull the nomic-embed-text model directly from Ollama’s system in your Ollama container.
 docker exec -it agent-stack-ollama-1 bash   # Access Ollama Container
 ollama pull nomic-embed-text    # Pull embedding model
+ollama list                     # View installed models
+
+
+#  Correct Qdrant API Endpoints:
+
+Insert/Update Points: PUT /collections/{collection_name}/points
+Search Points: POST /collections/{collection_name}/points/search
+Delete Points: POST /collections/{collection_name}/points/delete
+Get Points: POST /collections/{collection_name}/points
+
+
+# Create the collection in Qdrant
+curl -X PUT "http://your-vps-ip:6333/collections/legal_documents" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "vectors": {
+      "size": 768,
+      "distance": "Cosine"
+    }
+  }'
+
+# Verify collection was created in Qdrant
+curl "http://your-vps-ip:6333/collections/legal_documents"
+
+
+
+
+#### >>--------------------------------  FILES ------------------------------------------------------>>
 
 
 

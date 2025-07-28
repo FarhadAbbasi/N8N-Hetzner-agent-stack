@@ -1,0 +1,60 @@
+{
+    "nodes": [
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "http://tika_server:9998/tika",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Accept",
+                "value": "text/plain"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/octet-stream"
+              }
+            ]
+          },
+          "sendBody": true,
+          "contentType": "raw",
+          "body": "={{ $input.all().map(item => item.binary.file.data )}}", // The binary data is in a field named 'file'. You can see it in output response body. 
+          "options": {
+            "response": {
+              "response": {
+                "responseFormat": "text"
+              }
+            }
+          }
+        },
+        "id": "3dfab394-049c-45fa-bce8-cd48103b6bdf",
+        "name": "Extract with Tika",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.1,
+        "position": [
+          160,
+          -928
+        ]
+      }
+    ],
+    "connections": {
+      "Extract with Tika": {
+        "main": [
+          []
+        ]
+      }
+    },
+    "pinData": {},
+    "meta": {
+      "instanceId": "622e4f60dd7a7494dfa8a517aa8c3ae281321686576b9eab3e4249b4d67bfded"
+    }
+  }
+
+
+
+
+  Error LOGS:
+Method not allowed - please check you are using the right HTTP method
+405 - ""
+{ "body": [ "JVBERi0xLjMKMyAwIG9iago8PC9UeXBlIC9QYWdlCi9QYXJ ......  MDAwIG4gCjAwMDAwMDM1MDggMDAwMDAgbiAKdHJhaWxlcgo8PAovU2l6ZSAxMwovUm9vdCAxMiAwIFIKL0luZm8gMTEgMCBSCj4+CnN0YXJ0eHJlZgozNjEyCiUlRU9GCg==" ], "headers": { "accept": "text/plain", "content-type": "" }, "method": "POST", "uri": "http://tika_server:9998/tika", "gzip": true, "rejectUnauthorized": true, "followRedirect": true, "resolveWithFullResponse": true, "followAllRedirects": true, "timeout": 300000, "json": false, "useStream": true }

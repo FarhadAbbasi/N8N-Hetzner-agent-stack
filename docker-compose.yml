@@ -146,7 +146,7 @@ services:
     ports:
       - "9998:9998"
     networks:
-      - legal_ai_network
+      - internal
 
 
   # ------------------------------
