@@ -1,0 +1,1192 @@
+{
+  "name": "LinkedIn Sales Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -864,
+        400
+      ],
+      "id": "fbe77f02-6148-4b42-8c37-40d086c265e9",
+      "name": "Telegram Trigger",
+      "webhookId": "b344dd87-e9db-4a94-9d61-3d27c4e8920e"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "6d4d8a15-a933-404c-8e0b-cfeaddcd9433",
+              "leftValue": "={{ $json.message.voice.file_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -656,
+        544
+      ],
+      "id": "6cf78a00-d90f-425a-b526-878ae95f5dc2",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "fileId": "={{ $json.message.voice.file_id }}"
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -656,
+        400
+      ],
+      "id": "6259c8b0-70bd-4aa5-80b6-b41ef95cba65",
+      "name": "Telegram",
+      "webhookId": "3458190a-fef1-4ac0-afca-431b41750bd1"
+    },
+    {
+      "parameters": {
+        "resource": "audio",
+        "operation": "transcribe",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        -656,
+        288
+      ],
+      "id": "16b42652-8ab2-4af2-a871-a26eaa238e4a",
+      "name": "OpenAI"
+    },
+    {
+      "parameters": {
+        "text": "={{ $('Merge').item.json.text }}",
+        "attributes": {
+          "attributes": [
+            {
+              "name": "keyword",
+              "description": "This is the keyword that will be used to search for the leads. Location is a seprate paramter, you just have to return a keyword. Correct some spelling errors as well as needed"
+            },
+            {
+              "name": "location",
+              "description": "the location mentioned by user for lead generation, correct some spelling errors as well as needed"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.informationExtractor",
+      "typeVersion": 1,
+      "position": [
+        240,
+        112
+      ],
+      "id": "0bdafe10-2716-4854-8bd5-18593fc68246",
+      "name": "Information Extractor"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        272,
+        240
+      ],
+      "id": "17f4836d-3a04-4538-9763-d6c18deb6236",
+      "name": "Google Gemini Chat Model"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.apify.com/v2/acts/caprolok~linkedin-leads-generator/run-sync-get-dataset-items",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "token",
+              "value": "{{APIFY_API_TOKEN}}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "keyword",
+              "value": "={{ $('Information Extractor').item.json.output.keyword }}"
+            },
+            {
+              "name": "location",
+              "value": "={{ $('Information Extractor').item.json.output.location }}"
+            },
+            {
+              "name": "language",
+              "value": "en"
+            },
+            {
+              "name": "maxLeads",
+              "value": "={{ 10 }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        784,
+        112
+      ],
+      "id": "707add2f-55ed-4950-92cd-9172ef0388b7",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "base": {
+          "__rl": true,
+          "value": "apphmmwdY1sQUTdqA",
+          "mode": "list",
+          "cachedResultName": "LinkedIn Outreach Agent Manager",
+          "cachedResultUrl": "https://airtable.com/apphmmwdY1sQUTdqA"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tbl843ks3Xb2MUBrW",
+          "mode": "list",
+          "cachedResultName": "Table 1",
+          "cachedResultUrl": "https://airtable.com/apphmmwdY1sQUTdqA/tbl843ks3Xb2MUBrW"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Username": "={{ $json.username }}",
+            "SearchTerm": "={{ $json.lead }}",
+            "URL": "={{ $json.userLink }}",
+            "Phone": "={{ $json.phones }}",
+            "Email": "={{ $json.emails }}",
+            "Status": "SCRAPED"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Username",
+              "displayName": "Username",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "SearchTerm",
+              "displayName": "SearchTerm",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Phone",
+              "displayName": "Phone",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "About",
+              "displayName": "About",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "URL",
+              "displayName": "URL",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "SCRAPED",
+                  "value": "SCRAPED"
+                },
+                {
+                  "name": "ANALYZED",
+                  "value": "ANALYZED"
+                },
+                {
+                  "name": "EMAILED",
+                  "value": "EMAILED"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Skills",
+              "displayName": "Skills",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Title",
+              "displayName": "Title",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Experience",
+              "displayName": "Experience",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "ProfileBio",
+              "displayName": "ProfileBio",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        992,
+        112
+      ],
+      "id": "fe76ac08-ae8e-45f7-aa67-ec8e8a6fd7c3",
+      "name": "Airtable"
+    },
+    {
+      "parameters": {
+        "chatId": "=1294431063",
+        "text": "=Leads for \"{{ $('HTTP Request').item.json.lead }}\" are saved to your AirTable!\n\nhttps://airtable.com/apphmmwdY1sQUTdqA/tbl843ks3Xb2MUBrW/viwr1IzPTzstRkBea?blocks=hide",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1168,
+        112
+      ],
+      "id": "bd2bd46a-1876-4bf1-983f-97b98fcc4da3",
+      "name": "Telegram1",
+      "webhookId": "03cadc36-0b1f-4de2-94a8-ea5871ec49e1",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "sendTo": "=",
+        "subject": "={{ $('OpenAI2').item.json.message.content.subject }}",
+        "message": "={{ $json.message.content.email_html }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        768,
+        800
+      ],
+      "id": "b83836e9-13df-4c00-9081-4587119c0052",
+      "name": "Gmail",
+      "webhookId": "3bd84672-4982-44cf-867d-8fbb0f9bcc6a"
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "apphmmwdY1sQUTdqA",
+          "mode": "list",
+          "cachedResultName": "LinkedIn Outreach Agent Manager",
+          "cachedResultUrl": "https://airtable.com/apphmmwdY1sQUTdqA"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tbl843ks3Xb2MUBrW",
+          "mode": "list",
+          "cachedResultName": "Leads",
+          "cachedResultUrl": "https://airtable.com/apphmmwdY1sQUTdqA/tbl843ks3Xb2MUBrW"
+        },
+        "filterByFormula": "({Status}='ANALYZED')",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        240,
+        800
+      ],
+      "id": "fa01a2e2-7c87-450b-a2e9-9cf79727dd09",
+      "name": "Airtable2"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4.1",
+          "mode": "list",
+          "cachedResultName": "GPT-4.1"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=You are an expert email copywriter and designer. Your task is to write highly persuasive, psychologically optimized HTML emails using modern, mobile-responsive inline HTML/CSS that are compatible with Gmail and other email clients.\n\nYour goal is to pitch the user’s advanced automation services to business leads with a promise of helping them save massive amounts of time, streamline operations, and eliminate repetitive manual work.\n\nBefore writing the email, carefully analyze the lead details provided in the prompt to identify key psychological triggers, motivations, and pain points. Use this understanding to emotionally and professionally connect with the lead through copy and design.\n\nUse psychological strategies such as:\n\t•\tPain point activation (wasted hours, inefficiency, error-prone workflows)\n\t•\tSocial proof (testimonials, stats, case studies)\n\t•\tScarcity (limited-time offer or availability)\n\t•\tAuthority (positioning the user as a top automation expert)\n\t•\tStrong, bold CTA (e.g., “Book Your Free Automation Audit”)\n\nEvery email must include:\n\t•\tA catchy, attention-grabbing headline\n\t•\tA strong supporting subheadline\n\t•\tEmotionally compelling and logically persuasive body\n\t•\tA realistic testimonial or stat\n\t•\tA clear call-to-action button\n\t•\tBeautiful, modern inline HTML/CSS design\n\t•\tResponsive layout suitable for both desktop and mobile\n\t•\tCode that is safe to paste directly into Gmail or most email platforms\n\nNever include the raw lead fields in the final output. Only use them to shape the message context. Output should be clean HTML only — no extra explanations or text. To keep the email personalized, make sure you mention the name of the person — they like it when it feels personal.\n",
+              "role": "system"
+            },
+            {
+              "content": "=Write a persuasive and beautifully designed HTML email for a business lead using the following profile:\n\t•\tName: {{ $json.Name }}\n\t•\tAbout: {{ $json.About }}\n\t•\tExperience: {{ $json.Experience }}\n\t•\tSkills: {{ $json.Skills }}\n\t•\tInterests: {{ $json.Interests }}\n\t•\tProjects: {{ $json.Projects }}\n\t•\tJob title: {{ $json['job title'] }}\n\nThis email should be an outreach pitch for my advanced automation services, offering to help them save countless hours, reduce inefficiencies, and automate repetitive tasks across their workflows.\n\nUse their background to emotionally and logically connect with them. Apply psychological triggers like pain point activation, scarcity, social proof, and authority. Position me as a top expert in business automation and operational efficiency.\n\nInclude:\n\t•\tA catchy headline\n\t•\tSupporting subheadline\n\t•\tCompelling body content\n\t•\tA realistic stat or testimonial\n\t•\tStrong CTA button\n\t•\tMobile-responsive inline HTML/CSS\n\nDo not mention or show the profile fields in the output — they are only for context. Output clean HTML only, no extra text.\n\nOutput the html part as a single json item called email_html.\nSign the email with\nDaniel H\nMentor AI\n\nAlso, write an engaging subject for the email as well, return it as a separate json item, call it subject\n"
+            }
+          ]
+        },
+        "jsonOutput": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        432,
+        800
+      ],
+      "id": "130af881-21a6-4a5b-ba5c-0ff9cdcc34ae",
+      "name": "OpenAI2"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Assuming the input items array contains the JSON data.\nconst profile = items[0].json;\n\nfunction F(value) { // Helper to format possibly null/undefined values as empty strings\n  return value || \"\";\n}\n\nlet summaryLines = [];\n\n// --- Basic Information ---\nif (profile.fullName) summaryLines.push(`Name: ${F(profile.fullName)}`);\nif (profile.headline) summaryLines.push(`Headline: ${F(profile.headline)}`);\n\nlet roleParts = [];\nif (profile.jobTitle) roleParts.push(F(profile.jobTitle));\nif (profile.companyName) roleParts.push(`at ${F(profile.companyName)}`);\nif (roleParts.length > 0) summaryLines.push(`Current Role: ${roleParts.join(\" \").trim()}`);\n\nif (profile.companyIndustry) summaryLines.push(`Company Industry: ${F(profile.companyIndustry)}`);\nif (profile.currentJobDuration) summaryLines.push(`Time in Current Role: ${F(profile.currentJobDuration)}`);\nif (profile.addressWithCountry) summaryLines.push(`Location: ${F(profile.addressWithCountry)}`);\n\n// --- About Section ---\nif (profile.about && typeof profile.about === 'string') {\n  if (summaryLines.length > 0 && summaryLines[summaryLines.length -1] !== \"\") summaryLines.push(\"\"); // Add a blank line if not the first section\n  summaryLines.push(\"## About:\");\n  summaryLines.push(profile.about.replace(/\\n\\s*\\n/g, '\\n').trim());\n}\n\n// --- Experience ---\nif (profile.experiences && Array.isArray(profile.experiences) && profile.experiences.length > 0) {\n  let experienceTexts = [];\n  profile.experiences.forEach(exp => {\n    if (!exp) return;\n    let companyNameFromSubtitle = F(exp.subtitle);\n    if (typeof exp.subtitle === 'string') {\n        const parts = exp.subtitle.split('·');\n        companyNameFromSubtitle = (parts[0] || \"\").trim();\n    }\n    let expLine = `- ${F(exp.title)} at ${companyNameFromSubtitle}`;\n    if (exp.caption) { expLine += ` (${F(exp.caption)})`; }\n    \n    let expDetails = [expLine];\n    if (exp.subComponents && Array.isArray(exp.subComponents) && exp.subComponents.length > 0 && exp.subComponents[0]) {\n        const mainDesc = exp.subComponents[0];\n        if (mainDesc.description && Array.isArray(mainDesc.description) && mainDesc.description.length > 0) {\n            mainDesc.description.forEach(descItem => {\n                if (descItem && descItem.type === 'textComponent' && descItem.text) {\n                    expDetails.push(`  * ${F(descItem.text)}`);\n                }\n            });\n        }\n    } else if (exp.description && Array.isArray(exp.description) && exp.description.length > 0) {\n        const descText = exp.description.filter(d => typeof d === 'string').join('; ');\n        if (descText) { expDetails.push(`  * ${descText}`); }\n    }\n    experienceTexts.push(expDetails.join('\\n'));\n  });\n  if (experienceTexts.length > 0) {\n    if (summaryLines.length > 0 && summaryLines[summaryLines.length -1] !== \"\") summaryLines.push(\"\");\n    summaryLines.push(\"## Professional Experience:\");\n    summaryLines.push(...experienceTexts);\n  }\n}\n\n// --- Skills ---\nlet skillsText = \"\";\nif (profile.skills && Array.isArray(profile.skills) && profile.skills.length > 0) {\n  skillsText = profile.skills.map(skill => skill && skill.title).filter(Boolean).join(\", \");\n} else if (profile.topSkillsByEndorsements && Array.isArray(profile.topSkillsByEndorsements) && profile.topSkillsByEndorsements.length > 0){\n  skillsText = profile.topSkillsByEndorsements.map(skill => skill && skill.skillName).filter(Boolean).join(\", \");\n}\nif (skillsText) {\n  if (summaryLines.length > 0 && summaryLines[summaryLines.length -1] !== \"\") summaryLines.push(\"\");\n  summaryLines.push(\"## Key Skills:\");\n  summaryLines.push(skillsText);\n}\n\n// --- Education ---\nif (profile.educations && Array.isArray(profile.educations) && profile.educations.length > 0) {\n  let educationTexts = [];\n  profile.educations.forEach(edu => {\n    if (!edu) return;\n    let eduLine = `- ${F(edu.subtitle)} from ${F(edu.title)}`;\n    if (edu.caption) { eduLine += ` (${F(edu.caption)})`; }\n    if (edu.subComponents && edu.subComponents[0] && edu.subComponents[0].description && edu.subComponents[0].description[0] && edu.subComponents[0].description[0].text) {\n        eduLine += ` - ${F(edu.subComponents[0].description[0].text)}`;\n    }\n    educationTexts.push(eduLine);\n  });\n  if (educationTexts.length > 0) {\n    if (summaryLines.length > 0 && summaryLines[summaryLines.length -1] !== \"\") summaryLines.push(\"\");\n    summaryLines.push(\"## Education:\");\n    summaryLines.push(...educationTexts);\n  }\n}\n\n// --- Recent LinkedIn Updates (Posts) ---\nif (profile.updates && Array.isArray(profile.updates) && profile.updates.length > 0) {\n  let updateTexts = [];\n  profile.updates.slice(0, 3).forEach(update => {\n    if (update && update.postText && typeof update.postText === 'string') {\n      const shortPost = update.postText.length > 350 ? update.postText.substring(0, 347) + \"...\" : update.postText;\n      updateTexts.push(`- Post: \"${shortPost.replace(/\\n+/g, ' ').trim()}\"`);\n    }\n  });\n  if (updateTexts.length > 0) {\n    if (summaryLines.length > 0 && summaryLines[summaryLines.length -1] !== \"\") summaryLines.push(\"\");\n    summaryLines.push(\"## Recent LinkedIn Activity/Updates (Highlights):\");\n    summaryLines.push(...updateTexts);\n  }\n}\n\n// --- Projects ---\nif (profile.projects && Array.isArray(profile.projects) && profile.projects.length > 0) {\n  let projectTexts = [];\n  profile.projects.forEach(project => {\n    if (!project) return;\n    let projectLine = F(project.title);\n    if (project.subComponents && project.subComponents[0] && project.subComponents[0].description && project.subComponents[0].description[0] && project.subComponents[0].description[0].text) {\n      projectLine += `: ${F(project.subComponents[0].description[0].text)}`;\n    }\n    projectTexts.push(`- ${projectLine}`);\n  });\n   if (projectTexts.length > 0) {\n    if (summaryLines.length > 0 && summaryLines[summaryLines.length -1] !== \"\") summaryLines.push(\"\");\n    summaryLines.push(\"## Notable Projects:\");\n    summaryLines.push(...projectTexts);\n  }\n}\n\n// --- Highlights from \"highlights\" section ---\nif (profile.highlights && Array.isArray(profile.highlights) && profile.highlights.length > 0) {\n    let highlightTexts = [];\n    profile.highlights.forEach(highlight => {\n        if (!highlight) return;\n        let highlightText = \"\";\n        if (highlight.title && highlight.subtitle) {\n            highlightText = `${F(highlight.title)}: ${F(highlight.subtitle)}`;\n        } else if (highlight.title) {\n            highlightText = F(highlight.title);\n        } else if (highlight.subtitle) {\n            highlightText = F(highlight.subtitle);\n        }\n        if (highlightText) { highlightTexts.push(`- ${highlightText}`); }\n    });\n    if (highlightTexts.length > 0) {\n      if (summaryLines.length > 0 && summaryLines[summaryLines.length -1] !== \"\") summaryLines.push(\"\");\n      summaryLines.push(\"## Profile Highlights:\");\n      summaryLines.push(...highlightTexts);\n    }\n}\n\n// --- Interests ---\nlet companyInterests = [];\nlet groupInterests = [];\nlet newsletterInterests = [];\nlet schoolInterests = [];\nlet otherInterestTexts = [];\n\nif (profile.interests && Array.isArray(profile.interests) && profile.interests.length > 0) {\n  profile.interests.forEach(interestSection => {\n    if (!interestSection || !interestSection.section_name || !Array.isArray(interestSection.section_components)) return;\n    const sectionName = F(interestSection.section_name).toLowerCase();\n    const components = interestSection.section_components;\n\n    components.forEach(comp => {\n      if (comp && comp.titleV2) {\n        const title = F(comp.titleV2);\n        if (title) {\n          if (sectionName.includes(\"companies\")) companyInterests.push(title);\n          else if (sectionName.includes(\"groups\")) groupInterests.push(title);\n          else if (sectionName.includes(\"newsletters\")) newsletterInterests.push(title);\n          else if (sectionName.includes(\"schools\")) schoolInterests.push(title);\n          else otherInterestTexts.push(`${F(interestSection.section_name)}: ${title}`);\n        }\n      }\n    });\n  });\n}\n\nif (companyInterests.length > 0 || groupInterests.length > 0 || newsletterInterests.length > 0 || schoolInterests.length > 0 || otherInterestTexts.length > 0) {\n    if (summaryLines.length > 0 && summaryLines[summaryLines.length -1] !== \"\") summaryLines.push(\"\");\n    summaryLines.push(\"## Interests:\");\n    if (companyInterests.length > 0) summaryLines.push(`  Companies: ${companyInterests.join(', ')}`);\n    if (groupInterests.length > 0) summaryLines.push(`  Groups: ${groupInterests.join(', ')}`);\n    if (newsletterInterests.length > 0) summaryLines.push(`  Newsletters: ${newsletterInterests.join(', ')}`);\n    if (schoolInterests.length > 0) summaryLines.push(`  Schools: ${schoolInterests.join(', ')}`);\n    if (otherInterestTexts.length > 0) {\n        summaryLines.push(`  Other:`);\n        otherInterestTexts.forEach(txt => summaryLines.push(`    - ${txt}`));\n    }\n}\n\n// Join all collected lines into a single string\nconst finalOutput = summaryLines.join('\\n').trim();\n\n// Return the single string\nreturn [{ json: { cleanedProfileText: finalOutput } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        624,
+        464
+      ],
+      "id": "6a5dc770-7f0e-46c1-b8b3-7a777140ba3c",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.apify.com/v2/acts/dev_fusion~linkedin-profile-scraper/run-sync-get-dataset-items",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "token",
+              "value": "{{APIFY_API_TOKEN}}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n    \"profileUrls\": [\n        \"{{ $json.URL }}\"\n    ]\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        448,
+        464
+      ],
+      "id": "2a82e027-85e2-4712-aa27-18a496ee3b7a",
+      "name": "HTTP Request1",
+      "executeOnce": false
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "apphmmwdY1sQUTdqA",
+          "mode": "list",
+          "cachedResultName": "LinkedIn Outreach Agent Manager",
+          "cachedResultUrl": "https://airtable.com/apphmmwdY1sQUTdqA"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tbl843ks3Xb2MUBrW",
+          "mode": "list",
+          "cachedResultName": "Leads",
+          "cachedResultUrl": "https://airtable.com/apphmmwdY1sQUTdqA/tbl843ks3Xb2MUBrW"
+        },
+        "filterByFormula": "{Status} = \"SCRAPED\"",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        240,
+        464
+      ],
+      "id": "475647bd-0a7d-44ba-9710-678c909b1254",
+      "name": "Airtable3"
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "base": {
+          "__rl": true,
+          "value": "apphmmwdY1sQUTdqA",
+          "mode": "list",
+          "cachedResultName": "LinkedIn Outreach Agent Manager",
+          "cachedResultUrl": "https://airtable.com/apphmmwdY1sQUTdqA"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tbl843ks3Xb2MUBrW",
+          "mode": "list",
+          "cachedResultName": "Leads",
+          "cachedResultUrl": "https://airtable.com/apphmmwdY1sQUTdqA/tbl843ks3Xb2MUBrW"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Skills": "={{ $json.output.Skills || \" \" }}",
+            "Status": "ANALYZED",
+            "Email": "={{ $json.output.email }}",
+            "Title": "={{ $json.output['job title'] }}",
+            "Experience": "={{ $json.output.Experience }}",
+            "ProfileBio": "={{ $json.output.About }}"
+          },
+          "matchingColumns": [
+            "Email"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": false
+            },
+            {
+              "id": "Username",
+              "displayName": "Username",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "SearchTerm",
+              "displayName": "SearchTerm",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Phone",
+              "displayName": "Phone",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "About",
+              "displayName": "About",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "URL",
+              "displayName": "URL",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "SCRAPED",
+                  "value": "SCRAPED"
+                },
+                {
+                  "name": "ANALYZED",
+                  "value": "ANALYZED"
+                },
+                {
+                  "name": "EMAILED",
+                  "value": "EMAILED"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Skills",
+              "displayName": "Skills",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Title",
+              "displayName": "Title",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Experience",
+              "displayName": "Experience",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "ProfileBio",
+              "displayName": "ProfileBio",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        1120,
+        464
+      ],
+      "id": "bc9c617d-e7e7-4114-8dc7-f8f22f81fb9f",
+      "name": "Airtable4"
+    },
+    {
+      "parameters": {
+        "text": "=Please only extract the information available {{ $('Code').item.json.cleanedProfileText }}",
+        "attributes": {
+          "attributes": [
+            {
+              "name": "Name",
+              "description": "name of the person"
+            },
+            {
+              "name": "About",
+              "description": "About the person"
+            },
+            {
+              "name": "Experience",
+              "description": "work experience of the person"
+            },
+            {
+              "name": "Skills",
+              "description": "skills of the person"
+            },
+            {
+              "name": "Interests",
+              "description": "interests mentioned for the person"
+            },
+            {
+              "name": "Projects",
+              "description": "projects the person has worked on"
+            },
+            {
+              "name": "Highlights",
+              "description": "the persons highlights"
+            },
+            {
+              "name": "job title",
+              "description": "current job of the person"
+            },
+            {
+              "name": "email",
+              "description": "email address mentioned for the user"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.informationExtractor",
+      "typeVersion": 1,
+      "position": [
+        800,
+        464
+      ],
+      "id": "3b41713c-a997-40c3-99dd-fdc6c0e5fcbd",
+      "name": "Information Extractor1"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.5-pro-preview-05-06",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        800,
+        608
+      ],
+      "id": "033836e8-9079-43f7-a5bb-eae922dd1efc",
+      "name": "Google Gemini Chat Model1"
+    },
+    {
+      "parameters": {
+        "content": "## EmailSender",
+        "height": 220,
+        "width": 1360
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        784
+      ],
+      "id": "ed72e0dc-d33f-4439-bfb4-fcfe16fd5829",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "## ProfileScraper",
+        "height": 320,
+        "width": 1360,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        448
+      ],
+      "id": "8fa8f57f-876b-41b7-b140-0f858a816160",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "## LeadFinder",
+        "height": 420,
+        "width": 1360,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "135257ae-7d66-421c-93a4-862e0bc53241",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.1,
+      "position": [
+        -448,
+        304
+      ],
+      "id": "d27d4b04-9d9f-4af1-bd7d-f99a558afc6e",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "5046c8e8-c068-42df-9985-1fd1f9bf2bf8",
+              "name": "input",
+              "value": "={{ $json.message.text }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -288,
+        304
+      ],
+      "id": "2335b4d7-349c-4ee5-a135-9429000fd745",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "inputText": "={{$('Merge').item.json.text}}{{ $('Merge').item.json.message.text }}",
+        "categories": {
+          "categories": [
+            {
+              "category": "SCRAPE",
+              "description": "This is when the user is wanting to find new leads"
+            },
+            {
+              "category": "ANALYZE",
+              "description": "When the person wants wants to qualify/analyze profiles of scraped leads"
+            },
+            {
+              "category": "EMAIL",
+              "description": "When a person wants to email a group of leads"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.textClassifier",
+      "typeVersion": 1,
+      "position": [
+        -368,
+        480
+      ],
+      "id": "67e23fc3-a192-47fa-b691-754d7ca92e38",
+      "name": "Text Classifier"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.5-flash-preview-05-20",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -480,
+        608
+      ],
+      "id": "06bbf6b9-226a-4ab1-b80c-ea4cb6b6dc59",
+      "name": "Google Gemini Chat Model2"
+    },
+    {
+      "parameters": {
+        "content": "## Initiator",
+        "height": 860,
+        "width": 940,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -960,
+        80
+      ],
+      "id": "a3e661f3-69db-45d4-bb85-17216efd091c",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "operation": "sendAndWait",
+        "chatId": "=1294431063",
+        "message": "How many leads do you want to scrape? (1 - 50)",
+        "responseType": "freeText",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        592,
+        112
+      ],
+      "id": "0d0c1cf6-abbe-47df-9f6c-cc5cf2c49985",
+      "name": "Telegram2",
+      "webhookId": "76dfc227-a99e-4ff3-8680-eeebd65fcbf4"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Telegram": {
+      "main": [
+        [
+          {
+            "node": "OpenAI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Information Extractor",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Information Extractor": {
+      "main": [
+        [
+          {
+            "node": "Telegram2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Airtable",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Airtable": {
+      "main": [
+        [
+          {
+            "node": "Telegram1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Airtable2": {
+      "main": [
+        [
+          {
+            "node": "OpenAI2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI2": {
+      "main": [
+        [
+          {
+            "node": "Gmail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Information Extractor1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Airtable3": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Information Extractor1": {
+      "main": [
+        [
+          {
+            "node": "Airtable4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Information Extractor1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Text Classifier",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Text Classifier",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Text Classifier": {
+      "main": [
+        [
+          {
+            "node": "Information Extractor",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Airtable3",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Airtable2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram2": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "213a4332-18ce-4ec2-bb6b-753729231ab9",
+  "meta": {
+    "instanceId": "622e4f60dd7a7494dfa8a517aa8c3ae281321686576b9eab3e4249b4d67bfded"
+  },
+  "id": "XMYCxn9jTvtvEdrg",
+  "tags": []
+}
