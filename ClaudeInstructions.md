@@ -50,7 +50,7 @@ curl -X PUT "http://your-vps-ip:6333/collections/legal_documents" \
   }'
 
 # Verify collection was created in Qdrant
-curl "http://your-vps-ip:6333/collections/legal_documents"
+curl "http://localhost:6333/collections/legal_documents"
 
 
 
