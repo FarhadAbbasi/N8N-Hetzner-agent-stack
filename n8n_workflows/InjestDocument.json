@@ -1,0 +1,507 @@
+{
+    "name": "Legal Document Ingestion to Qdrant",
+    "nodes": [
+      {
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "ingest-document",
+          "responseMode": "responseNode",
+          "options": {
+            "allowedOrigins": "*"
+          }
+        },
+        "id": "webhook-ingest-trigger",
+        "name": "Document Ingestion Webhook",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 1,
+        "position": [240, 300],
+        "webhookId": "document-ingestion-webhook"
+      },
+      {
+        "parameters": {
+          "functionCode": "// Extract file information and metadata from webhook\nconst body = $input.all()[0].json.body || $input.all()[0].json;\nconst files = $input.all()[0].binary || {};\n\n// Check if file is uploaded via binary data or URL\nlet fileData = null;\nlet fileName = '';\nlet fileType = '';\nlet textContent = null;\n\nif (Object.keys(files).length > 0) {\n  // File uploaded as binary\n  const fileKey = Object.keys(files)[0];\n  fileData = files[fileKey];\n  fileName = fileData.fileName || 'unknown_file';\n  fileType = fileData.mimeType || 'unknown';\n} else if (body.file_url) {\n  // File provided as URL\n  fileName = body.file_name || body.file_url.split('/').pop();\n  fileType = body.file_type || 'application/pdf';\n} else if (body.text_content) {\n  // Direct text content provided\n  textContent = body.text_content;\n  fileName = body.file_name || 'text_content.txt';\n  fileType = 'text/plain';\n}\n\nif (!fileData && !body.file_url && !textContent) {\n  throw new Error('No file, URL, or text content provided. Please upload a file, provide a file_url, or include text_content.');\n}\n\n// Extract metadata\nconst metadata = {\n  title: body.title || fileName.replace(/\\.[^/.]+$/, \"\"),\n  author: body.author || 'Unknown',\n  category: body.category || 'Legal Document',\n  court: body.court || null,\n  caseNumber: body.case_number || body.caseNumber || null,\n  date: body.date || new Date().toISOString().split('T')[0],\n  tags: body.tags || [],\n  description: body.description || '',\n  source: body.source || 'Manual Upload'\n};\n\n// Generate processing ID\nconst processingId = Math.random().toString(36).substring(7) + '_' + Date.now();\n\nreturn {\n  fileName: fileName,\n  fileType: fileType,\n  hasFileData: !!fileData,\n  fileUrl: body.file_url || null,\n  textContent: textContent,\n  metadata: metadata,\n  processingId: processingId,\n  timestamp: new Date().toISOString()\n};"
+        },
+        "id": "extract-file-info",
+        "name": "Extract File Info",
+        "type": "n8n-nodes-base.function",
+        "typeVersion": 1,
+        "position": [460, 300]
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "strict"
+            },
+            "conditions": [
+              {
+                "id": "condition1",
+                "leftValue": "={{ $json.fileUrl }}",
+                "rightValue": "",
+                "operator": {
+                  "type": "string",
+                  "operation": "notEmpty"
+                }
+              }
+            ],
+            "combinator": "and"
+          },
+          "options": {}
+        },
+        "id": "check-file-source",
+        "name": "Check File Source",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2,
+        "position": [680, 300]
+      },
+      {
+        "parameters": {
+          "url": "={{ $json.fileUrl }}",
+          "authentication": "none",
+          "requestMethod": "GET",
+          "options": {
+            "response": {
+              "response": {
+                "responseFormat": "file"
+              }
+            }
+          }
+        },
+        "id": "download-file",
+        "name": "Download File from URL",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.1,
+        "position": [900, 200]
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "strict"
+            },
+            "conditions": [
+              {
+                "id": "condition1",
+                "leftValue": "={{ $json.fileType }}",
+                "rightValue": "text",
+                "operator": {
+                  "type": "string",
+                  "operation": "contains"
+                }
+              }
+            ],
+            "combinator": "or"
+          },
+          "options": {}
+        },
+        "id": "check-file-type",
+        "name": "Check File Type",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2,
+        "position": [1120, 300]
+      },
+      {
+        "parameters": {
+          "functionCode": "// Extract text content from uploaded text files\nconst fileName = $json.fileName;\nconst fileType = $json.fileType;\nlet textContent = '';\n\n// Get file data from binary upload or previous download\nconst inputData = $input.all()[0];\nlet fileBuffer;\n\n// Check if we have binary data (uploaded file)\nif (inputData.binary && Object.keys(inputData.binary).length > 0) {\n  const binaryKey = Object.keys(inputData.binary)[0];\n  const binaryData = inputData.binary[binaryKey];\n  \n  // Convert base64 to buffer\n  fileBuffer = Buffer.from(binaryData.data, 'base64');\n  textContent = fileBuffer.toString('utf-8');\n} else {\n  // Check if text content was provided directly\n  const extractedInfo = $('Extract File Info').all()[0].json;\n  if (extractedInfo.textContent) {\n    textContent = extractedInfo.textContent;\n  } else {\n    throw new Error('No file data available for text extraction');\n  }\n}\n\n// Clean and validate text content\nif (!textContent || textContent.trim().length === 0) {\n  throw new Error(`Unable to extract text content from ${fileName}`);\n}\n\nreturn {\n  fileName: fileName,\n  fileType: fileType,\n  textContent: textContent.trim(),\n  contentLength: textContent.trim().length,\n  metadata: $('Extract File Info').all()[0].json.metadata,\n  processingId: $('Extract File Info').all()[0].json.processingId,\n  extractionMethod: 'direct_text'\n};"
+        },
+        "id": "extract-text-direct",
+        "name": "Extract Text Direct",
+        "type": "n8n-nodes-base.function",
+        "typeVersion": 1,
+        "position": [1340, 200]
+      },
+      {
+        "parameters": {
+          "url": "http://tika_server:9998/tika",
+          "authentication": "none",
+          "requestMethod": "PUT",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Accept",
+                "value": "text/plain"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/octet-stream"
+              }
+            ]
+          },
+          "sendBody": true,
+          "bodyContentType": "raw",
+          "body": "={{ $binary.data.data }}",
+          "options": {
+            "response": {
+              "response": {
+                "responseFormat": "text"
+              }
+            }
+          }
+        },
+        "id": "extract-with-tika",
+        "name": "Extract with Tika",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.1,
+        "position": [1340, 400]
+      },
+      {
+        "parameters": {
+          "functionCode": "// Process Tika extraction results\nconst extractedText = $input.all()[0].data || $input.all()[0].json || '';\nconst fileName = $('Check File Type').all()[0].json.fileName;\nconst fileType = $('Check File Type').all()[0].json.fileType;\n\n// Clean the extracted text\nlet textContent = '';\nif (typeof extractedText === 'string') {\n  textContent = extractedText;\n} else if (extractedText.toString) {\n  textContent = extractedText.toString();\n}\n\n// Clean and validate text content\ntextContent = textContent.trim().replace(/\\s+/g, ' ');\n\nif (!textContent || textContent.length === 0) {\n  throw new Error(`Tika failed to extract text from ${fileName}`);\n}\n\nreturn {\n  fileName: fileName,\n  fileType: fileType,\n  textContent: textContent,\n  contentLength: textContent.length,\n  metadata: $('Extract File Info').all()[0].json.metadata,\n  processingId: $('Extract File Info').all()[0].json.processingId,\n  extractionMethod: 'tika_server'\n};"
+        },
+        "id": "process-tika-result",
+        "name": "Process Tika Result",
+        "type": "n8n-nodes-base.function",
+        "typeVersion": 1,
+        "position": [1560, 400]
+      },
+      {
+        "parameters": {
+          "functionCode": "// Chunk the document text into smaller pieces for better embedding and retrieval\nconst inputData = $input.all()[0].json;\nconst textContent = inputData.textContent;\nconst metadata = inputData.metadata;\nconst fileName = inputData.fileName;\nconst processingId = inputData.processingId;\n\n// Validate input\nif (!textContent || typeof textContent !== 'string') {\n  throw new Error('No valid text content provided for chunking');\n}\n\nif (textContent.trim().length === 0) {\n  throw new Error('Text content is empty after trimming');\n}\n\n// Chunking configuration\nconst CHUNK_SIZE = 1000; // characters per chunk\nconst CHUNK_OVERLAP = 200; // overlap between chunks\nconst MIN_CHUNK_SIZE = 100; // minimum chunk size to be meaningful\n\n// Function to create chunks with overlap\nfunction createChunks(text, chunkSize, overlap) {\n  const chunks = [];\n  let start = 0;\n  \n  // Clean text first\n  const cleanText = text.replace(/\\s+/g, ' ').trim();\n  \n  while (start < cleanText.length) {\n    let end = Math.min(start + chunkSize, cleanText.length);\n    \n    // Try to end at a sentence boundary\n    if (end < cleanText.length) {\n      const sentenceBoundaries = ['.', '!', '?', '\\n'];\n      let bestBoundary = -1;\n      \n      for (const boundary of sentenceBoundaries) {\n        const boundaryPos = cleanText.lastIndexOf(boundary, end);\n        if (boundaryPos > start + (chunkSize * 0.5)) {\n          bestBoundary = Math.max(bestBoundary, boundaryPos);\n        }\n      }\n      \n      if (bestBoundary > -1) {\n        end = bestBoundary + 1;\n      }\n    }\n    \n    const chunk = cleanText.substring(start, end).trim();\n    \n    if (chunk.length >= MIN_CHUNK_SIZE) {\n      chunks.push({\n        text: chunk,\n        startIndex: start,\n        endIndex: end,\n        chunkIndex: chunks.length\n      });\n    }\n    \n    // Move start position\n    start = Math.max(start + 1, end - overlap);\n    if (start >= cleanText.length) break;\n  }\n  \n  return chunks;\n}\n\n// Create chunks\nconst chunks = createChunks(textContent, CHUNK_SIZE, CHUNK_OVERLAP);\n\nif (chunks.length === 0) {\n  throw new Error(`No valid chunks created from text content. Original length: ${textContent.length}`);\n}\n\n// Prepare chunk data with metadata\nconst processedChunks = chunks.map((chunk, index) => {\n  const chunkId = `${processingId}_chunk_${index}`;\n  \n  return {\n    id: chunkId,\n    text: chunk.text,\n    metadata: {\n      ...metadata,\n      fileName: fileName,\n      chunkIndex: index,\n      totalChunks: chunks.length,\n      startIndex: chunk.startIndex,\n      endIndex: chunk.endIndex,\n      chunkLength: chunk.text.length,\n      processingId: processingId\n    }\n  };\n});\n\nconst result = {\n  chunks: processedChunks,\n  totalChunks: processedChunks.length,\n  fileName: fileName,\n  processingId: processingId,\n  originalLength: textContent.length,\n  extractionMethod: inputData.extractionMethod || 'unknown'\n};\n\n// Debug information\nconsole.log(`Chunking completed: ${processedChunks.length} chunks created from ${textContent.length} characters`);\n\nreturn result;"
+        },
+        "id": "chunk-document",
+        "name": "Chunk Document",
+        "type": "n8n-nodes-base.function",
+        "typeVersion": 1,
+        "position": [3100, 300]
+      },
+      {
+        "parameters": {
+          "functionCode": "// Split chunks into individual items for processing\nconst chunks = $json.chunks;\n\n// Return each chunk as a separate item\nreturn chunks.map(chunk => ({\n  chunkId: chunk.id,\n  chunkText: chunk.text,\n  chunkMetadata: chunk.metadata,\n  processingId: $json.processingId,\n  fileName: $json.fileName\n}));"
+        },
+        "id": "split-chunks",
+        "name": "Split Chunks",
+        "type": "n8n-nodes-base.function",
+        "typeVersion": 1,
+        "position": [2880, 300]
+      },
+      {
+        "parameters": {
+          "url": "http://localhost:11434/api/embeddings",
+          "authentication": "none",
+          "requestMethod": "POST",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "sendBody": true,
+          "bodyContentType": "json",
+          "jsonParameters": true,
+          "bodyParametersJson": "={\n  \"model\": \"nomic-embed-text\",\n  \"prompt\": \"{{ $json.chunkText }}\"\n}"
+        },
+        "id": "generate-chunk-embedding",
+        "name": "Generate Chunk Embedding",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.1,
+        "position": [1780, 300]
+      },
+      {
+        "parameters": {
+          "functionCode": "// Prepare data for Qdrant insertion\nconst embeddingResponse = $input.all()[0].json;\nconst embedding = embeddingResponse.embedding;\nconst chunkData = $('Split Chunks').all()[$runIndex].json;\n\nif (!embedding || !Array.isArray(embedding)) {\n  throw new Error('Failed to generate embedding for chunk');\n}\n\n// Prepare point for Qdrant\nconst point = {\n  id: chunkData.chunkId,\n  vector: embedding,\n  payload: {\n    text: chunkData.chunkText,\n    content: chunkData.chunkText, // Alias for compatibility\n    title: chunkData.chunkMetadata.title,\n    author: chunkData.chunkMetadata.author,\n    category: chunkData.chunkMetadata.category,\n    court: chunkData.chunkMetadata.court,\n    case_number: chunkData.chunkMetadata.caseNumber,\n    caseNumber: chunkData.chunkMetadata.caseNumber, // Alias for compatibility\n    date: chunkData.chunkMetadata.date,\n    tags: chunkData.chunkMetadata.tags,\n    description: chunkData.chunkMetadata.description,\n    source: chunkData.chunkMetadata.source,\n    fileName: chunkData.chunkMetadata.fileName,\n    chunkIndex: chunkData.chunkMetadata.chunkIndex,\n    totalChunks: chunkData.chunkMetadata.totalChunks,\n    chunkLength: chunkData.chunkMetadata.chunkLength,\n    processingId: chunkData.chunkMetadata.processingId,\n    ingestionDate: new Date().toISOString()\n  }\n};\n\nreturn {\n  point: point,\n  chunkId: chunkData.chunkId,\n  processingId: chunkData.processingId\n};"
+        },
+        "id": "prepare-qdrant-point",
+        "name": "Prepare Qdrant Point",
+        "type": "n8n-nodes-base.function",
+        "typeVersion": 1,
+        "position": [2000, 300]
+      },
+      {
+        "parameters": {
+          "url": "http://localhost:6333/collections/legal_documents/points",
+          "authentication": "none",
+          "requestMethod": "PUT",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "sendBody": true,
+          "bodyContentType": "json",
+          "jsonParameters": true,
+          "bodyParametersJson": "={\n  \"points\": [{{ JSON.stringify($json.point) }}]\n}"
+        },
+        "id": "insert-to-qdrant",
+        "name": "Insert to Qdrant",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.1,
+        "position": [2220, 300]
+      },
+      {
+        "parameters": {
+          "functionCode": "// Collect results from all processed chunks\nconst allResults = $input.all();\nconst processingId = allResults[0].json.result?.operation_id || 'unknown';\n\n// Count successful insertions\nconst successfulInsertions = allResults.filter(result => \n  result.json.result && result.json.result.status === 'completed'\n).length;\n\nconst totalChunks = allResults.length;\n\n// Prepare final response\nconst response = {\n  success: true,\n  message: 'Document ingestion completed successfully',\n  processingId: $('Extract File Info').all()[0].json.processingId,\n  fileName: $('Extract File Info').all()[0].json.fileName,\n  metadata: $('Extract File Info').all()[0].json.metadata,\n  statistics: {\n    totalChunks: totalChunks,\n    successfulInsertions: successfulInsertions,\n    failedInsertions: totalChunks - successfulInsertions,\n    originalDocumentLength: $('Chunk Document').all()[0].json.originalLength\n  },\n  timestamp: new Date().toISOString(),\n  qdrantCollection: 'legal_documents'\n};\n\nreturn response;"
+        },
+        "id": "collect-results",
+        "name": "Collect Results",
+        "type": "n8n-nodes-base.function",
+        "typeVersion": 1,
+        "position": [2440, 300]
+      },
+      {
+        "parameters": {
+          "respondWith": "json",
+          "responseBody": "={{ JSON.stringify($json, null, 2) }}",
+          "options": {
+            "responseHeaders": {
+              "entries": [
+                {
+                  "name": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "name": "Access-Control-Allow-Origin",
+                  "value": "*"
+                }
+              ]
+            }
+          }
+        },
+        "id": "ingestion-response",
+        "name": "Ingestion Response",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1,
+        "position": [2660, 300]
+      },
+      {
+        "parameters": {
+          "functionCode": "// Error handling for document ingestion\nconst error = $input.all()[0].error || { message: 'Unknown error occurred during document ingestion' };\n\nconst errorResponse = {\n  success: false,\n  error: {\n    message: error.message || 'Document ingestion failed',\n    type: error.name || 'IngestionError',\n    step: error.step || 'unknown',\n    timestamp: new Date().toISOString()\n  },\n  processingId: $('Extract File Info').first()?.json?.processingId || 'unknown'\n};\n\nreturn errorResponse;"
+        },
+        "id": "ingestion-error-handler",
+        "name": "Ingestion Error Handler",
+        "type": "n8n-nodes-base.function",
+        "typeVersion": 1,
+        "position": [1560, 500]
+      },
+      {
+        "parameters": {
+          "respondWith": "json",
+          "responseBody": "={{ JSON.stringify($json, null, 2) }}",
+          "responseCode": 500,
+          "options": {
+            "responseHeaders": {
+              "entries": [
+                {
+                  "name": "Content-Type",
+                  "value": "application/json"
+                }
+              ]
+            }
+          }
+        },
+        "id": "ingestion-error-response",
+        "name": "Ingestion Error Response",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1,
+        "position": [1780, 500]
+      }
+    ],
+    "connections": {
+      "Document Ingestion Webhook": {
+        "main": [
+          [
+            {
+              "node": "Extract File Info",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Extract File Info": {
+        "main": [
+          [
+            {
+              "node": "Check File Source",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Check File Source": {
+        "main": [
+          [
+            {
+              "node": "Download File from URL",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Check File Type",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Download File from URL": {
+        "main": [
+          [
+            {
+              "node": "Check File Type",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Check File Type": {
+        "main": [
+          [
+            {
+              "node": "Extract Text Direct",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Extract with Tika",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Extract Text Direct": {
+        "main": [
+          [
+            {
+              "node": "Chunk Document",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Extract with Tika": {
+        "main": [
+          [
+            {
+              "node": "Process Tika Result",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Process Tika Result": {
+        "main": [
+          [
+            {
+              "node": "Chunk Document",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Chunk Document": {
+        "main": [
+          [
+            {
+              "node": "Split Chunks",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Split Chunks": {
+        "main": [
+          [
+            {
+              "node": "Generate Chunk Embedding",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Generate Chunk Embedding": {
+        "main": [
+          [
+            {
+              "node": "Prepare Qdrant Point",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Prepare Qdrant Point": {
+        "main": [
+          [
+            {
+              "node": "Insert to Qdrant",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Insert to Qdrant": {
+        "main": [
+          [
+            {
+              "node": "Collect Results",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Collect Results": {
+        "main": [
+          [
+            {
+              "node": "Ingestion Response",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Ingestion Error Handler": {
+        "main": [
+          [
+            {
+              "node": "Ingestion Error Response",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "pinData": {},
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "staticData": null,
+    "tags": [
+      {
+        "createdAt": "2024-01-01T00:00:00.000Z",
+        "updatedAt": "2024-01-01T00:00:00.000Z",
+        "id": "document-ingestion",
+        "name": "Document Ingestion"
+      }
+    ],
+    "triggerCount": 1,
+    "updatedAt": "2024-01-01T00:00:00.000Z",
+    "versionId": "1"
+  }
