@@ -1,0 +1,577 @@
+{
+  "name": "AI Legal Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -352,
+        -160
+      ],
+      "id": "38acfc7f-4e65-44b6-aeaf-58c67a28056a",
+      "name": "When chat message received",
+      "webhookId": "d23cf7f5-d743-4724-bd38-e098d776e493"
+    },
+    {
+      "parameters": {
+        "functionCode": "// Extract embedding vector from Ollama response\nconst response = $input.all()[0].json;\nconst embedding = response.embedding;\n\nif (!embedding || !Array.isArray(embedding)) {\n  throw new Error('Failed to generate embedding vector');\n}\n\nreturn {\n  userQuery: $('Extract Query').all()[0].json.userQuery,\n  embedding: embedding,\n  embeddingLength: embedding.length,\n  requestId: $('Extract Query').all()[0].json.requestId\n};"
+      },
+      "id": "990d9d8b-3245-4815-9432-7adc1c30523c",
+      "name": "Process Embedding",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        432,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://ollama:11434/api/embeddings",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"nomic-embed-text\",\n  \"prompt\": \"{{ $json.userQuery }}\"\n}",
+        "options": {}
+      },
+      "id": "60adc8a2-0117-4a34-9175-ffe323ceb56c",
+      "name": "Generate Query Embedding",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        224,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "legal-query",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "114ed487-8169-4037-8949-acd4b4dbf681",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -320,
+        80
+      ],
+      "webhookId": "legal-query-webhook"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://qdrant:6333/collections/legal_documents/points/search",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"vector\": {{ JSON.stringify($json.embedding) }},\n  \"limit\": 5,\n  \"with_payload\": true,\n  \"with_vector\": false,\n  \"score_threshold\": 0.5\n}",
+        "options": {}
+      },
+      "id": "2e9892f4-e93a-476a-bb2c-74a0b95bcf6b",
+      "name": "Search Qdrant Vector DB",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        752,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Process Qdrant search results and prepare context for LLM\nconst qdrantResponse = $input.all()[0].json;\nconst searchResults = qdrantResponse.result || [];\n\nif (searchResults.length === 0) {\n  return {\n    userQuery: $('Process Embedding').all()[0].json.userQuery,\n    context: \"No relevant legal documents found for this query.\",\n    documentsFound: 0,\n    requestId: $('Process Embedding').all()[0].json.requestId\n  };\n}\n\n// Extract document content and metadata\nlet contextDocuments = [];\nlet contextText = \"\";\n\nsearchResults.forEach((result, index) => {\n  const payload = result.payload || {};\n  const score = result.score || 0;\n  \n  const docInfo = {\n    title: payload.title || `Document ${index + 1}`,\n    content: payload.content || payload.text || \"No content available\",\n    caseNumber: payload.case_number || payload.caseNumber,\n    court: payload.court,\n    date: payload.date,\n    category: payload.category || payload.type,\n    score: score.toFixed(3)\n  };\n  \n  contextDocuments.push(docInfo);\n  \n  // Build context text for LLM\n  contextText += `\\n\\n--- Document ${index + 1} (Relevance: ${docInfo.score}) ---\\n`;\n  if (docInfo.title) contextText += `Title: ${docInfo.title}\\n`;\n  if (docInfo.caseNumber) contextText += `Case Number: ${docInfo.caseNumber}\\n`;\n  if (docInfo.court) contextText += `Court: ${docInfo.court}\\n`;\n  if (docInfo.date) contextText += `Date: ${docInfo.date}\\n`;\n  if (docInfo.category) contextText += `Category: ${docInfo.category}\\n`;\n  contextText += `Content: ${docInfo.content}\\n`;\n});\n\nreturn {\n  userQuery: $('Process Embedding').all()[0].json.userQuery,\n  context: contextText.trim(),\n  documentsFound: searchResults.length,\n  documents: contextDocuments,\n  requestId: $('Process Embedding').all()[0].json.requestId\n};"
+      },
+      "id": "9dabf1e0-7b01-4c15-8932-4c7e910ddee7",
+      "name": "Process Search Results",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        1168,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://ollama:11434/api/generate",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{\n  {\n    \"model\": \"llama3.2:1b\",\n    \"prompt\": `You are a legal AI assistant specialized in analyzing legal documents and precedents. Based on the provided legal documents and context, please provide a comprehensive and accurate response to the user's query.\n\nUser Query: ${$json.userQuery}\n\nRelevant Legal Documents and Context:\n${$json.context}\n\nInstructions:\n- Provide a clear, well-structured response that directly addresses the user's query\n- Reference specific cases, precedents, or legal principles from the provided documents\n- If citing information, mention the document source\n- Highlight key legal concepts and their implications\n- If the query cannot be fully answered with the provided documents, clearly state what information is missing\n- Maintain professional legal language while being accessible\n- Include relevant case numbers or court names when available\n- Keep your response concise if the explanation is not very necessary\n\nResponse:`,\n    \"stream\": false,\n    \"options\": {\n      \"temperature\": 0.3,\n      \"top_p\": 0.9,\n      \"max_tokens\": 1500\n    }\n  }\n}}",
+        "options": {}
+      },
+      "id": "f12d3e23-7f9e-4dbf-a0d4-338a773296ef",
+      "name": "Query Ollama LLM",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1520,
+        -240
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Process LLM response and filter out thinking process\nconst llmResponse = $input.all()[0].json;\nconst processedResults = $('Process Search Results').all()[0].json;\n\n// Extract the generated response\nlet rawResponse = llmResponse.response || \"Unable to generate response\";\n\n// Function to clean and extract core response from thinking models\nfunction extractCoreResponse(response) {\n  // Remove <think>...</think> blocks (case insensitive)\n  let cleaned = response.replace(/<think>[\\s\\S]*?<\\/think>/gi, '');\n  \n  // Remove any remaining thinking patterns\n  cleaned = cleaned.replace(/^(Let me think|I need to|Let me analyze|Hmm,|So,|Well,|Okay,).*$/gim, '');\n  \n  // Remove meta-commentary about the response itself\n  cleaned = cleaned.replace(/^(Here is|Here's|I'll provide|Let me provide|Based on).*?:/gim, '');\n  cleaned = cleaned.replace(/^(Certainly!|Sure!|Of course!) (Here is|Here's).*?:/gim, '');\n  \n  // Remove excessive line breaks and clean up formatting\n  cleaned = cleaned.replace(/\\n{3,}/g, '\\n\\n');\n  cleaned = cleaned.trim();\n  \n  // If response starts with a separator line, clean it up\n  cleaned = cleaned.replace(/^---+\\s*/g, '');\n  \n  // Remove any remaining introductory phrases at the start\n  cleaned = cleaned.replace(/^(Based on the provided documents?,?\\s*)/i, '');\n  cleaned = cleaned.replace(/^(Here is a structured.*?response.*?:?\\s*)/i, '');\n  \n  return cleaned.trim();\n}\n\n// Function to improve response structure and readability\nfunction improveResponseStructure(response) {\n  // Ensure proper spacing around headers\n  response = response.replace(/^(#{1,6})\\s*/gm, '$1 ');\n  \n  // Ensure proper spacing around bullet points\n  response = response.replace(/^(\\d+\\.|\\*|-)\\s*/gm, '$1 ');\n  \n  // Clean up any double spaces\n  response = response.replace(/  +/g, ' ');\n  \n  // Ensure proper paragraph spacing\n  response = response.replace(/\\n\\n\\n+/g, '\\n\\n');\n  \n  return response;\n}\n\n// Extract and clean the core response\nlet cleanedResponse = extractCoreResponse(rawResponse);\ncleanedResponse = improveResponseStructure(cleanedResponse);\n\n// If the cleaned response is too short, it might have over-filtered\nif (cleanedResponse.length < 100 && rawResponse.length > 200) {\n  // Fallback: just remove thinking blocks and basic cleanup\n  cleanedResponse = rawResponse.replace(/<think>[\\s\\S]*?<\\/think>/gi, '');\n  cleanedResponse = cleanedResponse.replace(/^(Certainly!|Sure!|Of course!) (Here is|Here's).*?:\\s*/i, '');\n  cleanedResponse = cleanedResponse.trim();\n}\n\n// Prepare comprehensive response\nconst finalResponse = {\n  success: true,\n  requestId: processedResults.requestId,\n  query: processedResults.userQuery,\n  response: cleanedResponse,\n  metadata: {\n    documentsFound: processedResults.documentsFound,\n    documentsUsed: processedResults.documents ? processedResults.documents.length : 0,\n    timestamp: new Date().toISOString(),\n    model: llmResponse.model,\n    vectorDB: \"Qdrant\",\n    responseProcessed: true,\n    originalLength: rawResponse.length,\n    cleanedLength: cleanedResponse.length\n  }\n};\n\n// Include document references if available\nif (processedResults.documents && processedResults.documents.length > 0) {\n  finalResponse.sources = processedResults.documents.map(doc => ({\n    title: doc.title,\n    caseNumber: doc.caseNumber,\n    court: doc.court,\n    date: doc.date,\n    relevanceScore: doc.score\n  })).filter(source => source.title !== undefined);\n}\n\nreturn finalResponse;"
+      },
+      "id": "ee386d0b-86c0-48d5-bd60-085a75e55f3a",
+      "name": "Format Final Response",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        1920,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json, null, 2) }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      },
+      "id": "f237692d-bb6d-4ee7-97f9-cf4095261ca1",
+      "name": "Webhook Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        2176,
+        80
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "functionCode": "// Error handling and response formatting\nconst error = $input.all()[0].error || { message: 'Unknown error occurred' };\n\nconst errorResponse = {\n  success: false,\n  error: {\n    message: error.message || 'An error occurred while processing your request',\n    type: error.name || 'ProcessingError',\n    timestamp: new Date().toISOString()\n  },\n  requestId: $('Extract Query').first()?.json?.requestId || 'unknown'\n};\n\nreturn errorResponse;"
+      },
+      "id": "0f9aed73-1281-4bb9-9e98-8a1196760102",
+      "name": "Error Handler",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        480,
+        -224
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json, null, 2) }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "id": "0aada2e7-9be6-4aa2-90f7-7b040f893b29",
+      "name": "Error Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        704,
+        -224
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Process LLM response and prepare final output\nconst llmResponse = $input.all()[0].json;\nconst processedResults = $('Process Search Results').all()[0].json;\n\n// Extract the generated response\nconst aiResponse = llmResponse.response || \"Unable to generate response\";\n\n// Prepare comprehensive response\nconst finalResponse = {\n  success: true,\n  requestId: processedResults.requestId,\n  query: processedResults.userQuery,\n  response: aiResponse,\n  metadata: {\n    documentsFound: processedResults.documentsFound,\n    documentsUsed: processedResults.documents ? processedResults.documents.length : 0,\n    timestamp: new Date().toISOString(),\n    model: \"DeepSeek-r1:1.5b\",\n    vectorDB: \"Qdrant\"\n  }\n};\n\n// Include document references if available\nif (processedResults.documents && processedResults.documents.length > 0) {\n  finalResponse.sources = processedResults.documents.map(doc => ({\n    title: doc.title,\n    caseNumber: doc.caseNumber,\n    court: doc.court,\n    date: doc.date,\n    relevanceScore: doc.score\n  })).filter(source => source.title !== undefined);\n}\n\nreturn finalResponse;"
+      },
+      "id": "3af1b86c-f205-4d97-aab8-41da0e2e9a1d",
+      "name": "Format Final Response1",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        1904,
+        -224
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Unfilteed Respose Node",
+        "height": 224
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1840,
+        -304
+      ],
+      "typeVersion": 1,
+      "id": "657b94a5-bebb-4dab-9353-0df8480a766f",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "### Filtered Response for DeepSeekR1 Model\n",
+        "height": 256,
+        "width": 192,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1872,
+        0
+      ],
+      "typeVersion": 1,
+      "id": "4882ef82-ce57-4636-ac40-81a0b45038e2",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "functionCode": "const item = $input.first();\n\nconst prompt = `\n#User Query:\n${item.json.userQuery}\n\n#Your Job: You are a skilled Legal Expert AI. Analyze the user's legal query and provide authoritative, practical advice based on established laws and the provided documents/context.\nYour primary focus is to understand the <User Query:> given below, and your secondary focus is to check whether documents provided as context are relevant to the query. \n\n#Relevant Legal Documents and Context:\n${item.json.context}\n\n#Instructions:\n- Act as a professional legal advisor, not just a document summarizer.\n- Provide clear, actionable legal guidance supported by laws, precedents, or cited sources (mention case names/numbers if available).\n- If the message is just a greeting, reply politely as a friendly chatbot.\n- Highlight key legal risks, principles, and implications relevant to the query.\n- If the documents are insufficient to fully answer, state what details are missing.\n- Keep the tone professional, accurate, and concise while remaining accessible.\n\nExpert Legal Advice:`;\n\nreturn [{\n  json: {\n    ...item.json,\n    fullPrompt: prompt\n  }\n}];"
+      },
+      "id": "b759cd42-b878-4880-9125-b23471934570",
+      "name": "Prompt",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        1408,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://ollama:11434/api/generate",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ \n  {\n    \"model\": \"llama3.2:1b\",\n    \"prompt\": $json.fullPrompt,\n    \"stream\": false,\n    \"options\": {\n      \"temperature\": 0.3,\n      \"top_p\": 0.9,\n      \"num_predict\": 1500,\n      \"num_ctx\": 4096\n    }\n  }\n}}",
+        "options": {
+          "timeout": 180000
+        }
+      },
+      "id": "140ce096-744f-4479-bf75-d5be046c7941",
+      "name": "Query Ollama LLM1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1632,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Prompt + API Call",
+        "height": 224
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1440,
+        -304
+      ],
+      "typeVersion": 1,
+      "id": "e97d497d-ada0-4497-ac02-f59d247dbd3c",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "## # Error Node",
+        "height": 224,
+        "width": 448
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        432,
+        -304
+      ],
+      "typeVersion": 1,
+      "id": "757a43d0-fbef-4875-8e5a-71536ea683ad",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "content": "## LLM API Call",
+        "height": 256,
+        "width": 448,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1344,
+        0
+      ],
+      "typeVersion": 1,
+      "id": "30a0e298-5c20-427a-8109-02eea8130d02",
+      "name": "Sticky Note4"
+    },
+    {
+      "parameters": {
+        "functionCode": "// Extract and validate the user query from the webhook\nconst body = $input.all()[0].json.body || $input.all()[0].json;\nconst userQuery = body.query || body.question || body.text || body.message;\n\nif (!userQuery) {\n  throw new Error('No query provided. Please include a \"query\" field in your request.');\n}\n\n// Clean and prepare the query\nconst cleanedQuery = userQuery.trim();\n\nreturn {\n  userQuery: cleanedQuery,\n  timestamp: new Date().toISOString(),\n  requestId: Math.random().toString(36).substring(7)\n};"
+      },
+      "id": "ebf4af3b-9623-4693-ba4f-cbe613fbb023",
+      "name": "Extract Query",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        48,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// // remove stop-words & short tokens\n// const sw = require('stopword');\n// const text = $input.all()[0].json.userQuery.toLowerCase().replace(/[^a-z0-9\\\\s]/g,' ');\n// const tokens = [...new Set(sw.removeStopwords(text.split(/\\\\s+/)).filter(t=>t.length>2))];\n// return { ...$input.all()[0].json, keywords: tokens };\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        624,
+        304
+      ],
+      "id": "4490867e-1f77-4ead-8922-7e62d368c737",
+      "name": "Keyword Extract / BM25 Proxy"
+    },
+    {
+      "parameters": {
+        "jsCode": "const res = $input.first().json.result || [];\n// const kws = $('Keyword Extract / BM25 Proxy').first().json.keywords || [];\nconst kws = ['hello', 'contract', 'real'];\n\nres.forEach(r => {\n  const txt = (r.payload.content || '').toLowerCase();\n  const hits = kws.reduce((c,k)=> txt.includes(k)?c+1:c,0);\n  r.combined = r.score + hits*0.1; // 0.1 weight per keyword hit\n  });\nres.sort((a,b)=> b.combined - a.combined);\nreturn { ...$input.first().json, result: res.slice(0,5) };\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        976,
+        80
+      ],
+      "id": "a8fc5b04-abd1-482f-a711-7e5c4b28aa94",
+      "name": "Re-rank Results"
+    },
+    {
+      "parameters": {
+        "functionCode": "// Extract and validate the user query from the webhook\nconst body = $input.all()[0].json.body || $input.all()[0].json;\nconst userQuery = body.chatInput || body.question || body.text || body.message;\n\nif (!userQuery) {\n  throw new Error('No query provided. Please include a \"query\" field in your request.');\n}\n\n// Clean and prepare the query\nconst cleanedQuery = userQuery.trim();\n\nreturn {\n  body: {\n    \"message\" : cleanedQuery,\n  }    \n};"
+      },
+      "id": "790395c1-a104-4023-b2d2-55bb81d8ea98",
+      "name": "Extract Messsage",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        -160,
+        -160
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "Extract Messsage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Embedding": {
+      "main": [
+        [
+          {
+            "node": "Search Qdrant Vector DB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Query Embedding": {
+      "main": [
+        [
+          {
+            "node": "Process Embedding",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Extract Query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search Qdrant Vector DB": {
+      "main": [
+        [
+          {
+            "node": "Re-rank Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Search Results": {
+      "main": [
+        [
+          {
+            "node": "Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Ollama LLM": {
+      "main": [
+        []
+      ]
+    },
+    "Format Final Response": {
+      "main": [
+        [
+          {
+            "node": "Webhook Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Error Handler": {
+      "main": [
+        [
+          {
+            "node": "Error Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prompt": {
+      "main": [
+        [
+          {
+            "node": "Query Ollama LLM1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Ollama LLM1": {
+      "main": [
+        [
+          {
+            "node": "Format Final Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Query": {
+      "main": [
+        [
+          {
+            "node": "Generate Query Embedding",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Keyword Extract / BM25 Proxy": {
+      "main": [
+        []
+      ]
+    },
+    "Re-rank Results": {
+      "main": [
+        [
+          {
+            "node": "Process Search Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Messsage": {
+      "main": [
+        [
+          {
+            "node": "Extract Query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "0f29d960-eeaa-4e4e-ac34-1a12d92abf51",
+  "meta": {
+    "instanceId": "622e4f60dd7a7494dfa8a517aa8c3ae281321686576b9eab3e4249b4d67bfded"
+  },
+  "id": "ClovGkKicy7GIIO2",
+  "tags": [
+    {
+      "createdAt": "2025-07-24T14:29:26.776Z",
+      "updatedAt": "2025-07-24T14:29:26.776Z",
+      "id": "ZtrA1IiBak6SD7Y2",
+      "name": "Legal AI"
+    }
+  ]
+}
