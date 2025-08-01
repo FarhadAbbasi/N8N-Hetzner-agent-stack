@@ -136,7 +136,7 @@ crontab -e		#Add following line to crontab for auto-backups.
 0 */12 * * * /root/agent-stack/backup-all.sh >> /var/log/agent-backup.log 2>&1	
 
 # Restore from Backup
-nano /root/agent-stack/backup-all.sh			# create restore script
+nano /root/agent-stack/restore-from-backup.sh			# create restore script
 chmod +x /root/agent-stack/restore-from-backup.sh	#🔒 Make it executable: 
 /root/agent-stack/restore-from-backup.sh /root/agent-stack/complete-backups/backup-2025-07-19-1200.tar.gz	#To restore n8n, qdrant etc  from backups
 
@@ -672,7 +672,7 @@ FINAL_DIR="/root/agent-stack/complete-backups"
 ARCHIVE_NAME="backup-$TIMESTAMP.tar.gz"
 
 # Paths (adjust if different)
-QDRANT_HOST_PATH="/root/agent-stack/data/qdrant/storage"
+QDRANT_HOST_PATH="/root/agent-stack/data/qdrant"
 N8N_CONTAINER="agent-stack-n8n-1"
 
 # Create temporary directory
